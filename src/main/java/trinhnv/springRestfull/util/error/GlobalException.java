@@ -3,6 +3,7 @@ package trinhnv.springRestfull.util.error;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +15,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import trinhnv.springRestfull.domain.ApiResponse;
 
+import java.nio.file.attribute.UserPrincipalNotFoundException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,22 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 @RequestMapping
 public class GlobalException{
+
+    // xử lý exception login user/password sai -->>>401
+    @ExceptionHandler(value = {
+            UserPrincipalNotFoundException.class,
+            BadCredentialsException.class
+    })
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Object>> handleUserPrincipalNotFound(Exception ex){
+        ApiResponse<Object> res = new ApiResponse<>();
+        res.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        res.setError(ex.getMessage());
+        res.setMessage("Bad Credentials");
+
+        return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+    }
+
 
 
     // id sai format
