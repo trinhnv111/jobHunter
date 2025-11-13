@@ -49,6 +49,7 @@ public class SecurityConfiguration {
     }
 
     private SecretKey getSecretKey() {
+        // push
         byte[] keyBytes = Base64.from(jwtSecretKey).decode();
         return new SecretKeySpec(keyBytes, 0, keyBytes.length, SecurityUtil.JWT_ALGORITHM.getName());
     }
