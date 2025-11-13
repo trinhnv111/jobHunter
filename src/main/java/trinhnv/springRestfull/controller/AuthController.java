@@ -154,7 +154,7 @@ public class AuthController {
         // Tạo JWT token từ Authentication object
         // Token chứa: username, thời gian tạo, thời gian hết hạn
         String accessToken = this.securityUtil.createToken(authentication);
-
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         // ============================================================
         // BƯỚC 4: TRẢ VỀ TOKEN CHO CLIENT
         // ============================================================
