@@ -1,0 +1,299 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    SƠ ĐỒ LUỒNG XỬ LÝ ĐĂNG NHẬP VÀ TẠO TOKEN                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           BƯỚC 1: CLIENT GỬI REQUEST                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    [CLIENT]
+       │
+       │ POST /login
+       │ {
+       │   "username": "trinhnv",
+       │   "password": "123456"
+       │ }
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    BƯỚC 2: AuthController NHẬN REQUEST                      │
+│                         (controller/AuthController.java)                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    [AuthController.login()]
+       │
+       │ Tạo UsernamePasswordAuthenticationToken
+       │ chứa username và password
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              BƯỚC 3: AuthenticationManager XỬ LÝ XÁC THỰC                   │
+│                    (config/SecurityConfiguration.java)                       │
+│                                                                              │
+│  AuthenticationManager tự động:                                             │
+│  1. Tìm UserDetailsService trong Spring context                             │
+│  2. Gọi loadUserByUsername(username)                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ Gọi UserDetailsService
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│         BƯỚC 4: UserDetailCustorm.loadUserByUsername() ⭐ CUSTOM            │
+│                    (service/UserDetailCustorm.java)                         │
+│                                                                              │
+│  ═══════════════════════════════════════════════════════════════════════     │
+│  ĐÂY LÀ PHẦN BẠN TỰ VIẾT!                                                    │
+│  Spring Security KHÔNG BIẾT cách lấy user từ DB của bạn                     │
+│  → Bạn phải tự viết logic này                                                │
+│  ═══════════════════════════════════════════════════════════════════════     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ Gọi UserService.hanldeUser(username)
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              BƯỚC 5: UserService TRUY VẤN DATABASE                          │
+│                       (service/UserService.java)                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ Gọi UserRepository.findByUserName(username)
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│            BƯỚC 6: UserRepository QUERY DATABASE                            │
+│                     (repository/UserRepository.java)                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ SELECT * FROM user WHERE user_name = 'trinhnv'
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        BƯỚC 7: DATABASE TRẢ VỀ                              │
+│                              (MySQL Database)                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ Trả về User entity:
+       │ {
+       │   id: 1,
+       │   userName: "trinhnv",
+       │   passWord: "$2a$10$N9qo8uLOickgx2ZMRZoMye..." (đã mã hóa BCrypt)
+       │ }
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│     BƯỚC 8: UserDetailCustorm TẠO UserDetails OBJECT                        │
+│                    (service/UserDetailCustorm.java)                          │
+│                                                                              │
+│  return new User(                                                            │
+│      user.getUserName(),        // "trinhnv"                                 │
+│      user.getPassWord(),        // "$2a$10$..." (đã mã hóa)                 │
+│      [ROLE_USER]                // Quyền                                    │
+│  );                                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ Trả về UserDetails
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│        BƯỚC 9: AuthenticationManager SO SÁNH PASSWORD                      │
+│                    (config/SecurityConfiguration.java)                       │
+│                                                                              │
+│  Spring Security tự động:                                                    │
+│  1. Lấy password từ UserDetails (đã mã hóa BCrypt trong DB)                 │
+│  2. Lấy password từ request (plain text: "123456")                          │
+│  3. Mã hóa password từ request bằng BCryptPasswordEncoder                    │
+│  4. So sánh 2 chuỗi đã mã hóa                                               │
+│                                                                              │
+│  Nếu KHỚP → Xác thực thành công                                              │
+│  Nếu KHÔNG KHỚP → Throw BadCredentialsException                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ Password khớp → Tạo Authentication object
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│         BƯỚC 10: AuthController GỌI SecurityUtil.createToken()              │
+│                    (controller/AuthController.java)                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ Gọi securityUtil.createToken(authentication)
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              BƯỚC 11: SecurityUtil TẠO JWT TOKEN                             │
+│                       (util/SecurityUtil.java)                               │
+│                                                                              │
+│  1. Tạo JwtClaimsSet:                                                       │
+│     - subject: username ("trinhnv")                                          │
+│     - issuedAt: thời gian tạo                                                │
+│     - expiresAt: thời gian hết hạn (24 giờ sau)                             │
+│     - claim: thông tin authentication                                        │
+│                                                                              │
+│  2. Tạo JwsHeader:                                                          │
+│     - algorithm: HS512                                                      │
+│                                                                              │
+│  3. Mã hóa và ký token bằng JwtEncoder:                                     │
+│     - Sử dụng secret key từ application.properties                           │
+│     - Tạo chuỗi token: "eyJhbGciOiJIUzUxMiJ9..."                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ Trả về token string
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              BƯỚC 12: AuthController TRẢ VỀ TOKEN                           │
+│                    (controller/AuthController.java)                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+       │
+       │ Response:
+       │ {
+       │   "token": "eyJhbGciOiJIUzUxMiJ9..."
+       │ }
+       │
+       ▼
+    [CLIENT]
+    Nhận token và lưu lại
+    Dùng token này cho các request tiếp theo:
+    Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                          CÁC THÀNH PHẦN QUAN TRỌNG                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  1. SecurityConfiguration                                                   │
+│     - Cấu hình PasswordEncoder (BCrypt)                                     │
+│     - Cấu hình AuthenticationManager                                        │
+│     - Cấu hình JwtEncoder                                                    │
+│     - Cấu hình SecurityFilterChain                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  2. UserDetailCustorm ⭐ CUSTOM                                             │
+│     - Implement UserDetailsService                                           │
+│     - Override loadUserByUsername()                                          │
+│     - Load user từ database                                                 │
+│     - Trả về UserDetails cho Spring Security                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  3. SecurityUtil                                                            │
+│     - Tạo JWT token                                                         │
+│     - Sử dụng JwtEncoder                                                    │
+│     - Cấu hình thời gian hết hạn                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  4. AuthController                                                          │
+│     - Nhận request đăng nhập                                                │
+│     - Gọi AuthenticationManager                                              │
+│     - Gọi SecurityUtil để tạo token                                         │
+│     - Trả về token cho client                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    CÁCH CÁC THÀNH PHẦN GỌI TỚI NHAU                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+    AuthController
+         │
+         ├──→ AuthenticationManager (từ SecurityConfiguration)
+         │         │
+         │         └──→ UserDetailCustorm (tự động tìm trong Spring context)
+         │                   │
+         │                   └──→ UserService
+         │                             │
+         │                             └──→ UserRepository
+         │                                       │
+         │                                       └──→ Database
+         │
+         └──→ SecurityUtil
+                   │
+                   └──→ JwtEncoder (từ SecurityConfiguration)
+                             │
+                             └──→ Secret Key (từ application.properties)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    PHẦN CUSTOM - UserDetailCustorm                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  TẠI SAO CẦN CUSTOM?                                                        │
+│                                                                              │
+│  Spring Security KHÔNG BIẾT cách lấy user từ database của bạn!              │
+│  → Bạn phải tự viết logic này                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CUSTOM Ở ĐÂU?                                                              │
+│                                                                              │
+│  File: service/UserDetailCustorm.java                                       │
+│                                                                              │
+│  @Service  ← Đăng ký với Spring                                             │
+│  public class UserDetailCustorm implements UserDetailsService {              │
+│      @Override                                                               │
+│      public UserDetails loadUserByUsername(String username) {                │
+│          // ⭐ ĐÂY LÀ PHẦN BẠN TỰ VIẾT                                       │
+│          // 1. Lấy user từ database                                         │
+│          User user = userService.hanldeUser(username);                       │
+│                                                                              │
+│          // 2. Kiểm tra user có tồn tại không                                │
+│          if (user == null) {                                                 │
+│              throw new UsernameNotFoundException(...);                        │
+│          }                                                                   │
+│                                                                              │
+│          // 3. Trả về UserDetails cho Spring Security                        │
+│          return new User(                                                    │
+│              user.getUserName(),                                             │
+│              user.getPassWord(),  // PHẢI mã hóa BCrypt!                    │
+│              [ROLE_USER]                                                     │
+│          );                                                                  │
+│      }                                                                       │
+│  }                                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CHÈN VÀO BƯỚC NÀO?                                                         │
+│                                                                              │
+│  Bước 4 trong luồng xử lý:                                                  │
+│                                                                              │
+│  1. AuthenticationManager nhận request                                       │
+│  2. → Gọi UserDetailCustorm.loadUserByUsername() ⭐                         │
+│  3. → UserDetailCustorm gọi UserService                                      │
+│  4. → UserService gọi UserRepository                                        │
+│  5. → UserRepository query database                                          │
+│  6. → Trả về UserDetails                                                    │
+│  7. → Spring Security so sánh password                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                          LƯU Ý QUAN TRỌNG                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+1. Password trong database PHẢI được mã hóa bằng BCrypt
+   → Nếu không, xác thực sẽ thất bại!
+
+2. Secret key trong application.properties PHẢI giữ bí mật
+   → Nếu lộ → Kẻ xấu có thể tạo token giả!
+
+3. Token có thời hạn (24 giờ trong dự án này)
+   → Hết hạn phải đăng nhập lại
+
+4. UserDetailCustorm được Spring tự động tìm nhờ @Service
+   → Không cần đăng ký thủ công trong SecurityConfiguration
+
