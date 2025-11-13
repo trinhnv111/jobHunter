@@ -1,7 +1,14 @@
 package trinhnv.springRestfull.domain.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public class LoginDTO {
+    
+    @NotBlank(message = "tên đăng nhập không được bỏ trống")
     private String username;
+
+    @NotBlank(message = "mật khẩu không được bỏ trống")
     private String password;
 
     public LoginDTO(String username, String password) {

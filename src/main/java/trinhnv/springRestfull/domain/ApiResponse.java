@@ -11,7 +11,13 @@ public class ApiResponse<T> {
 
     public ApiResponse() {
     }
-    public ApiResponse(int statusCode, String error, Object message, T data) {}
+    public ApiResponse(int statusCode, String error, Object message, T data) {
+        this.statusCode = statusCode;
+        this.error = error;
+        this.message = message;
+        this.data = data;
+    }
+
 
     public int getStatusCode() {
         return statusCode;

@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpResponse;
@@ -34,6 +35,15 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object> {
         int status = httpServletResponse.getStatus();
 
         ApiResponse<Object> apiResponse = new ApiResponse<>();
+
+        if (body instanceof String) {
+            return body;
+        }
+
+//        // Nếu converter là StringHttpMessageConverter, trả thẳng
+//        if (StringHttpMessageConverter.class.isAssignableFrom(selectedConverterType)) {
+//            return body;
+//        }
 
         if(status >= 400)
         {

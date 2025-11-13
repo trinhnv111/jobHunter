@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import trinhnv.springRestfull.domain.User;
 import trinhnv.springRestfull.service.UserService;
-import trinhnv.springRestfull.service.error.IdInvalidException;
+import trinhnv.springRestfull.util.error.IdInvalidException;
 
 import java.util.List;
 

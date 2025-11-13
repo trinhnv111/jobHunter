@@ -19,6 +19,10 @@ public class UserDetailCustorm implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         trinhnv.springRestfull.domain.User user = this.userService.hanldeUser(username);
 
+        if (user == null) {
+            throw new UsernameNotFoundException("không tìm thấy: "+username);
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUserName(),
                 user.getPassWord(),

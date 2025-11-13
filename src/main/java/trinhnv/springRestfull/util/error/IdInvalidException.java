@@ -1,4 +1,4 @@
-package trinhnv.springRestfull.service.error;
+package trinhnv.springRestfull.util.error;
 
 import org.aspectj.bridge.IMessage;
 
