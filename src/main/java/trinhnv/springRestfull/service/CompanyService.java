@@ -1,26 +1,41 @@
 package trinhnv.springRestfull.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import trinhnv.springRestfull.domain.dto.CompanyDTO;
 import trinhnv.springRestfull.domain.entity.Company;
 import trinhnv.springRestfull.domain.mapper.CompanyMapper;
 import trinhnv.springRestfull.repository.CompanyRespository;
+import trinhnv.springRestfull.util.response.ResultPaginationResponse;
 
 import java.util.List;
-@Service
 
+@Service
 public class CompanyService {
     private final CompanyRespository companyRespository;
     private final CompanyMapper companyMapper;
-    public CompanyService(CompanyRespository companyRespository,CompanyMapper companyMapper) {
+    
+    public CompanyService(CompanyRespository companyRespository, CompanyMapper companyMapper) {
         this.companyRespository = companyRespository;
         this.companyMapper = companyMapper;
     }
 
-    public List<CompanyDTO> getAllCompany() {
-        List<Company> company = this.companyRespository.findAll();
-        return companyMapper.toDtoList(company);
+
+    public ResultPaginationResponse<CompanyDTO> getAllCompany(Pageable pageable, Specification<Company> spec) {
+        Page<Company> companyPage;
+        
+        // Nếu có specification thì dùng findAll với spec, không thì findAll bình thường
+        if (spec != null) {
+            companyPage = this.companyRespository.findAll(spec, pageable);
+        } else {
+            companyPage = this.companyRespository.findAll(pageable);
+        }
+        
+        // Convert Page<Company> sang ResultPaginationResponse<CompanyDTO>
+        return ResultPaginationResponse.ok(companyPage, companyMapper::toDto);
     }
 
     public CompanyDTO getCompanyById(Long id) {

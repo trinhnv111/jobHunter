@@ -1,12 +1,11 @@
 package trinhnv.springRestfull.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import trinhnv.springRestfull.domain.entity.Company;
 
-import java.util.List;
-
-public interface CompanyRespository extends JpaRepository<Company, Long> {
+public interface CompanyRespository extends JpaRepository<Company, Long>,
+        JpaSpecificationExecutor<Company> {
     Company findByName(String name);
 
-    List<Company> id(Long id);
 }

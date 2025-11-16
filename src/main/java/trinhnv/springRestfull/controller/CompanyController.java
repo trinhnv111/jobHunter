@@ -1,13 +1,16 @@
 package trinhnv.springRestfull.controller;
 
+import com.turkraft.springfilter.boot.Filter;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import trinhnv.springRestfull.common.annotation.ApiMessage;
 import trinhnv.springRestfull.domain.dto.CompanyDTO;
+import trinhnv.springRestfull.domain.entity.Company;
 import trinhnv.springRestfull.service.CompanyService;
-
-import java.util.List;
+import trinhnv.springRestfull.util.response.ResultPaginationResponse;
 
 @RestController
 public class CompanyController {
@@ -19,8 +22,11 @@ public class CompanyController {
 
     @GetMapping("/company")
     @ApiMessage("Lấy danh sách công ty thành công")
-    public ResponseEntity<List<CompanyDTO>> getAllCompany(){
-        return ResponseEntity.ok().body( this.companyService.getAllCompany());
+    public ResponseEntity<ResultPaginationResponse<CompanyDTO>> getAllCompany(
+            @Filter Specification<Company> spec,
+            Pageable pageable
+            ){
+        return ResponseEntity.ok(companyService.getAllCompany(pageable, spec));
     }
 
     @GetMapping("/company/{id}")

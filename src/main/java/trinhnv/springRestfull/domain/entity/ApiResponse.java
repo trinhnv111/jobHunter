@@ -14,22 +14,4 @@ public class ApiResponse<T> {
     private String error;
     private Object message;
     private T data;
-
-
-    public static <T> ApiResponse<T> success(Object message, T data) {
-        return ApiResponse.<T>builder()
-                .statusCode(0)
-                .message(message)
-                .data(data)
-                .build();
-    }
-
-    public static <T> ApiResponse<T> failed(String error, Object message) {
-        return ApiResponse.<T>builder()
-                .statusCode(1)
-                .error(error)
-                .message(message)
-                .data(null)
-                .build();
-    }
 }
