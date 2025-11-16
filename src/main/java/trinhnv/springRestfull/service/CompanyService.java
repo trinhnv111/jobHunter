@@ -25,14 +25,7 @@ public class CompanyService {
 
 
     public ResultPaginationResponse<CompanyDTO> getAllCompany(Pageable pageable, Specification<Company> spec) {
-        Page<Company> companyPage;
-        
-        // Nếu có specification thì dùng findAll với spec, không thì findAll bình thường
-        if (spec != null) {
-            companyPage = this.companyRespository.findAll(spec, pageable);
-        } else {
-            companyPage = this.companyRespository.findAll(pageable);
-        }
+        Page<Company> companyPage = (spec != null) ? this.companyRespository.findAll(spec, pageable) : this.companyRespository.findAll(pageable);
         
         // Convert Page<Company> sang ResultPaginationResponse<CompanyDTO>
         return ResultPaginationResponse.ok(companyPage, companyMapper::toDto);

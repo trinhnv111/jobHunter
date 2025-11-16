@@ -1,5 +1,8 @@
 package trinhnv.springRestfull.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -8,6 +11,7 @@ import trinhnv.springRestfull.domain.dto.UserDTO;
 import trinhnv.springRestfull.domain.entity.User;
 import trinhnv.springRestfull.domain.mapper.UserMapper;
 import trinhnv.springRestfull.repository.UserRepository;
+import trinhnv.springRestfull.util.response.ResultPaginationResponse;
 
 import java.util.List;
 
@@ -24,9 +28,10 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public List<UserDTO> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        return this.userMapper.toDtoList(users);
+    public ResultPaginationResponse<UserDTO> getAllUsers(Specification<User> spec, Pageable pageable) {
+        Page<User> user = (spec!= null) ? this.userRepository.findAll(spec,pageable) : this.userRepository.findAll(pageable);
+
+        return ResultPaginationResponse.ok(user,userMapper :: toDto);
     }
 
     public UserDTO findUserById(Long id){

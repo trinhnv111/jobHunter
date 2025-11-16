@@ -1,15 +1,19 @@
 package trinhnv.springRestfull.controller;
 
+import com.turkraft.springfilter.boot.Filter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import trinhnv.springRestfull.common.annotation.ApiMessage;
 import trinhnv.springRestfull.domain.dto.UserDTO;
+import trinhnv.springRestfull.domain.entity.User;
 import trinhnv.springRestfull.service.UserService;
 import trinhnv.springRestfull.util.error.IdInvalidException;
+import trinhnv.springRestfull.util.response.ResultPaginationResponse;
 
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,8 +23,11 @@ public class UserController {
 
     @GetMapping("/users")
     @ApiMessage("Lây danh sách người dùng thành công")
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
-        return ResponseEntity.status(HttpStatus.OK).body(this.userService.getAllUsers());
+    public ResponseEntity<ResultPaginationResponse<UserDTO>> getAllUsers(
+            @Filter Specification<User> user ,
+            Pageable pageable
+            ) {
+        return ResponseEntity.status(HttpStatus.OK).body(this.userService.getAllUsers(user,pageable));
     }
 
     @GetMapping("/users/{id}")
