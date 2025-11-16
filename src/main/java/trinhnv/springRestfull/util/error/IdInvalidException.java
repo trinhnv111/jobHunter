@@ -1,10 +1,7 @@
 package trinhnv.springRestfull.util.error;
 
-import org.aspectj.bridge.IMessage;
-
-public class IdInvalidException  extends  RuntimeException{
-    public IdInvalidException(String message){
+public class IdInvalidException extends RuntimeException {
+    public IdInvalidException(String message) {
         super(message);
     }
-
 }

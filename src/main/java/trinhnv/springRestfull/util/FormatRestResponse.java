@@ -10,6 +10,7 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+import trinhnv.springRestfull.common.annotation.ApiMessage;
 import trinhnv.springRestfull.domain.entity.ApiResponse;
 
 @ControllerAdvice
@@ -49,11 +50,30 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object> {
             return body;
         }
 
-        // 4. Case thành công, không có annotation -> dùng default message
+        // 4. Đọc trực tiếp annotation @ApiMessage từ method (KHÔNG CẦN RequestAttributes)
+        String message = getMessageFromAnnotation(returnType);
+        
+        // 5. Case thành công
         return ApiResponse.builder()
                 .statusCode(0)
-                .message("SUCCESS")  // default nếu không có @ApiMessage
+                .message(message != null ? message : "CALL API SUCCEEDED")  // Dùng message từ @ApiMessage hoặc default
                 .data(body)
                 .build();
+    }
+
+    /**
+     * Đọc trực tiếp annotation @ApiMessage từ MethodParameter
+     * Đơn giản hơn, không cần AOP và RequestAttributes
+     * 
+     * @param returnType MethodParameter chứa thông tin về method được gọi
+     * @return Message từ @ApiMessage annotation hoặc null nếu không có
+     */
+    private String getMessageFromAnnotation(MethodParameter returnType) {
+        // Đọc annotation @ApiMessage từ method
+        ApiMessage apiMessage = returnType.getMethodAnnotation(ApiMessage.class);
+        if (apiMessage != null) {
+            return apiMessage.value();
+        }
+        return null;
     }
 }
