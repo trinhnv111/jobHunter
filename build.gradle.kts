@@ -2,6 +2,8 @@ plugins {
 	java
 	id("org.springframework.boot") version "3.4.10"
 	id("io.spring.dependency-management") version "1.1.7"
+    id("io.freefair.lombok") version "9.1.0"
+    kotlin("kapt") version "1.9.25"
 }
 
 group = "trinhnv"
@@ -33,7 +35,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity6")
-	compileOnly("org.projectlombok:lombok")
+    implementation("org.mapstruct:mapstruct:1.6.3")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
+    compileOnly("org.projectlombok:lombok")
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	runtimeOnly("com.mysql:mysql-connector-j")
 	annotationProcessor("org.projectlombok:lombok")

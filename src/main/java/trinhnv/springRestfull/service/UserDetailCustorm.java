@@ -5,6 +5,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import trinhnv.springRestfull.domain.entity.User;
 
 import java.util.Collections;
 
@@ -100,7 +101,7 @@ public class UserDetailCustorm implements UserDetailsService {
         // ============================================================
         // Gọi UserService → UserRepository → Database
         // Query: SELECT * FROM user WHERE user_name = ?
-        trinhnv.springRestfull.domain.User user = this.userService.hanldeUser(username);
+        User user = this.userService.hanldeUser(username);
 
         // ============================================================
         // BƯỚC 2: KIỂM TRA USER CÓ TỒN TẠI KHÔNG

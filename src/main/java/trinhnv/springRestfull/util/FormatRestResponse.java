@@ -5,13 +5,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
-import trinhnv.springRestfull.domain.ApiResponse;
+import trinhnv.springRestfull.domain.entity.ApiResponse;
 
 @ControllerAdvice
 public class FormatRestResponse implements ResponseBodyAdvice<Object> {
@@ -30,32 +29,31 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object> {
                                   ServerHttpRequest request,
                                   ServerHttpResponse response) {
 
-        // lấy ra trạng thái
-        HttpServletResponse  httpServletResponse = ((ServletServerHttpResponse) response).getServletResponse();
+        HttpServletResponse httpServletResponse =
+                ((ServletServerHttpResponse) response).getServletResponse();
+
         int status = httpServletResponse.getStatus();
 
-        ApiResponse<Object> apiResponse = new ApiResponse<>();
+        // 1. Nếu controller OR AOP đã trả ApiResponse -> không wrap lại
+        if (body instanceof ApiResponse) {
+            return body;
+        }
 
+        // 2. Nếu trả về String -> không xử lý (Spring không cho wrap String)
         if (body instanceof String) {
             return body;
         }
 
-//        // Nếu converter là StringHttpMessageConverter, trả thẳng
-//        if (StringHttpMessageConverter.class.isAssignableFrom(selectedConverterType)) {
-//            return body;
-//        }
-
-        if(status >= 400)
-        {
-          return body;
-
-        }
-        else {
-            // case success
-            apiResponse.setData(body);
-            apiResponse.setMessage("CALL API SUCCEEDED");
+        // 3. Nếu status lỗi -> để GlobalException xử lý -> không wrap
+        if (status >= 400) {
+            return body;
         }
 
-        return apiResponse;
+        // 4. Case thành công, không có annotation -> dùng default message
+        return ApiResponse.builder()
+                .statusCode(0)
+                .message("SUCCESS")  // default nếu không có @ApiMessage
+                .data(body)
+                .build();
     }
 }

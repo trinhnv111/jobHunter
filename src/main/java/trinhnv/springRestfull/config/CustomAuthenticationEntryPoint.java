@@ -9,7 +9,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
-import trinhnv.springRestfull.domain.ApiResponse;
+import trinhnv.springRestfull.domain.entity.ApiResponse;
 
 import java.io.IOException;
 
@@ -122,7 +122,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
      *   "data": null
      * }
      * 
-     * ⚠️ LƯU Ý:
+     *  LƯU Ý:
      * - authException.getCause() có thể null → Cần check null
      * - Nên log exception để debug
      * - Có thể customize message theo từng loại exception
@@ -139,23 +139,12 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
             HttpServletResponse response, 
             AuthenticationException authException
     ) throws IOException, ServletException {
-        
-        // ============================================================
-        // BƯỚC 1: GỌI DEFAULT HANDLER
-        // ============================================================
-        // Set HTTP status code 401 và WWW-Authenticate header
-        // Header: WWW-Authenticate: Bearer
+
         this.authenticationEntryPoint.commence(request, response, authException);
-        
-        // ============================================================
-        // BƯỚC 2: SET RESPONSE CONTENT TYPE
-        // ============================================================
-        // application/json;charset=UTF-8 để hỗ trợ tiếng Việt
+
         response.setContentType("application/json;charset=UTF-8");
 
-        // ============================================================
-        // BƯỚC 3: TẠO API RESPONSE OBJECT
-        // ============================================================
+
         ApiResponse<Object> apiResponse = new ApiResponse<>();
         apiResponse.setStatusCode(HttpStatus.UNAUTHORIZED.value());  // 401
         
@@ -170,11 +159,6 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         // Message mô tả lỗi (có thể customize theo từng loại exception)
         apiResponse.setMessage("Token hết hạn,không hợp lệ,.........");
 
-        // ============================================================
-        // BƯỚC 4: CONVERT VÀ GHI RESPONSE
-        // ============================================================
-        // Convert ApiResponse thành JSON và ghi vào response
-        // Client sẽ nhận được response JSON với status code 401
         objectMapper.writeValue(response.getWriter(), apiResponse);
     }
 }
