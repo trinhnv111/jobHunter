@@ -11,4 +11,5 @@ import trinhnv.springRestfull.domain.entity.User;
 public interface UserMapper extends BaseMapper<UserDTO, User> {
 
     void updateUserFromDTO(UserDTO userDTO, @MappingTarget User updatedUser);
+
 }

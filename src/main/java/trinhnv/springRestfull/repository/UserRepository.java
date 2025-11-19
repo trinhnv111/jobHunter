@@ -8,4 +8,6 @@ import trinhnv.springRestfull.domain.entity.User;
 
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
     User findByUserName(String userName);
+
+    boolean existsByEmail(String email);
 }

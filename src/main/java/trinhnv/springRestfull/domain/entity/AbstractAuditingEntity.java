@@ -33,7 +33,7 @@ public abstract class AbstractAuditingEntity<T> implements Serializable {
 
     @LastModifiedBy
     @Column(name = "updated_by")
-    private String updatedBy; // map đúng với DB
+    private String updatedBy;
 
     @LastModifiedDate
     @Column(name = "updated_at")

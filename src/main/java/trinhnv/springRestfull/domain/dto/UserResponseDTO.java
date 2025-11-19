@@ -1,6 +1,5 @@
-package trinhnv.springRestfull.domain.entity;
+package trinhnv.springRestfull.domain.dto;
 
-import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,27 +8,24 @@ import trinhnv.springRestfull.util.constant.Gender;
 @Getter
 @Setter
 @Data
-@Entity
-@Table(name="user")
-public class User extends AbstractAuditingEntity <Long>{
 
-    @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+public class UserResponseDTO {
     private Long id;
 
     private String userName;
 
     private String email;
 
-    private String passWord;
+    private String password;
 
     private int age;
 
-    @Enumerated(EnumType.STRING)
     private Gender gender;
 
     private String address;
 
     private String refreshToken;
 
+
 }
+
