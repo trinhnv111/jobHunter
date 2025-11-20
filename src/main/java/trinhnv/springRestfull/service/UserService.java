@@ -41,8 +41,8 @@ public class UserService {
     }
 
     public UserDTO handleCretaeUser(UserDTO user) {
-        String hardPassWord = this.passwordEncoder.encode(user.getPassWord());
-        user.setPassWord(hardPassWord);
+        String hardPassWord = this.passwordEncoder.encode(user.getPassword());
+        user.setPassword(hardPassWord);
 
         User userEntity = userMapper.toEntity(user);
         return this.userMapper.toDto(userRepository.save(userEntity));
