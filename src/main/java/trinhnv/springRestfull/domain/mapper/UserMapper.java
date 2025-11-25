@@ -14,7 +14,7 @@ public interface UserMapper extends BaseMapper<UserDTO, User> {
 
     void updateUserFromDTO(UserDTO userDTO, @MappingTarget User updatedUser);
 
-    @Mapping(target = "password",ignore = true)
+    @Mapping(target = "passWord",ignore = true)
     User registerUser( RegisterDTO registerDTO);
 
 }

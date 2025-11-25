@@ -35,10 +35,6 @@ public class SecurityConfiguration {
 
     @Value("${trinhnguyen.jwtKey}")
     private String jwtSecretKey;
-    
-
-    @Value("${trinhnguyen.jwtSecond}")
-    private String jwtSecond;
 
 
     @Bean
@@ -77,7 +73,13 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/","/login","/register").permitAll()
+                        // Public endpoints - không cần token
+                        .requestMatchers(
+                                "/",
+                                "/auth/login",
+                                "/auth/register",
+                                "/auth/refresh"    // Refresh không cần access token
+                        ).permitAll()
                         
                         // Tất cả endpoint khác - PHẢI CÓ TOKEN HỢP LỆ
                         .anyRequest().authenticated()
@@ -152,7 +154,7 @@ public class SecurityConfiguration {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new
                 JwtGrantedAuthoritiesConverter();
         grantedAuthoritiesConverter.setAuthorityPrefix("");
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("trinhnv");
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("authorities");
         JwtAuthenticationConverter jwtAuthenticationConverter = new
                 JwtAuthenticationConverter();
 

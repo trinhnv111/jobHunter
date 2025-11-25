@@ -18,11 +18,15 @@ public class RegisterDTO extends BaseDTO {
 
     @NotBlank(message="tài khoản không được để trống")
     @NotNull
-    private String username;
+    private String userName;
 
     @NotBlank(message="mật khẩu không được để trống")
     @NotNull
     private String password;
+
+    @NotBlank(message="Nhập lại mật khẩu ")
+    @NotNull
+    private String confirmPassword;
 
     @NotBlank(message="email không được để trống")
     @NotNull

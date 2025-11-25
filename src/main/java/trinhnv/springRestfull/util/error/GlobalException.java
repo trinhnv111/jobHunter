@@ -1,9 +1,12 @@
 package trinhnv.springRestfull.util.error;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,11 +22,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * ===================================================================
+ * GLOBAL EXCEPTION HANDLER (STATELESS)
+ * ===================================================================
+ * 
+ * Xử lý exceptions cho ứng dụng stateless JWT.
+ * 
+ * @author trinhnv
+ */
 @ControllerAdvice
 @RequestMapping
-public class GlobalException{
+public class GlobalException {
 
-    // xử lý exception login user/password sai -->>>401
+    private static final Logger log = LoggerFactory.getLogger(GlobalException.class);
+
+    // ===================================================================
+    // AUTHENTICATION EXCEPTIONS
+    // ===================================================================
+
+    /**
+     * Xử lý exception login user/password sai → 401
+     */
     @ExceptionHandler(value = {
             UserPrincipalNotFoundException.class,
             BadCredentialsException.class
@@ -35,12 +55,52 @@ public class GlobalException{
         res.setError(ex.getMessage());
         res.setMessage("Bad Credentials");
 
-        return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
     }
 
+    // ===================================================================
+    // JWT EXCEPTIONS (STATELESS)
+    // ===================================================================
 
+    /**
+     * Xử lý JWT Exception (token hết hạn, invalid signature, etc.)
+     */
+    @ExceptionHandler(JwtException.class)
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Object>> handleJwtException(JwtException ex) {
+        log.warn("JWT Exception: {}", ex.getMessage());
+        
+        ApiResponse<Object> response = new ApiResponse<>();
+        response.setStatusCode(HttpStatus.UNAUTHORIZED.value());
+        response.setError("INVALID_TOKEN");
+        response.setMessage("Token không hợp lệ hoặc đã hết hạn");
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
 
-    // id sai format
+    /**
+     * Xử lý InvalidTokenException
+     */
+    @ExceptionHandler(InvalidTokenException.class)
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Object>> handleInvalidTokenException(InvalidTokenException ex) {
+        log.warn("Invalid token: {}", ex.getMessage());
+        
+        ApiResponse<Object> response = new ApiResponse<>();
+        response.setStatusCode(HttpStatus.UNAUTHORIZED.value());
+        response.setError("INVALID_TOKEN");
+        response.setMessage(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    // ===================================================================
+    // VALIDATION EXCEPTIONS
+    // ===================================================================
+
+    /**
+     * ID sai format
+     */
     @ExceptionHandler({IdInvalidException.class, MethodArgumentTypeMismatchException.class})
     @ResponseBody
     private ResponseEntity<ApiResponse<Object>>handleIdInvalidException(IdInvalidException ex, WebRequest webRequest) {
@@ -55,11 +115,13 @@ public class GlobalException{
 
     }
 
+    /**
+     * Validation errors
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException ex) {
 
-        // Tạo danh sách lỗi chi tiết
         List<Map<String, Object>> errorDetails = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -81,4 +143,23 @@ public class GlobalException{
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    // ===================================================================
+    // GENERAL EXCEPTIONS
+    // ===================================================================
+
+    /**
+     * Xử lý RuntimeException chung
+     */
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException ex) {
+        log.error("Runtime exception: ", ex);
+        
+        ApiResponse<Object> response = new ApiResponse<>();
+        response.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        response.setError("RUNTIME_ERROR");
+        response.setMessage(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
 }

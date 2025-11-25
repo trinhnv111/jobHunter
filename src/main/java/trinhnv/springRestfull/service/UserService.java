@@ -66,12 +66,21 @@ public class UserService {
         return userRepository.findByUserName(userName);
     }
 
+    /**
+     * Tìm User entity theo ID
+     * Dùng cho join query khi cần User từ RefreshToken.userId
+     */
+    public User findUserEntityById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new BadCredentialsException("Không tìm thấy người dùng với ID: " + id));
+    }
+
     public UserDTO handleCreateRegisterUser(RegisterDTO registerDTO) {
        if(this.userRepository.existsByEmail(registerDTO.getEmail())){
-           throw new RuntimeException("Tài khoản đã tồn tại");
-       }
-       if(this.userRepository.existsByUserName(registerDTO.getUsername())){
            throw new RuntimeException("Email đã tồn tại");
+       }
+       if(this.userRepository.existsByUserName(registerDTO.getUserName())){
+           throw new RuntimeException("Tài khoản đã tồn tại");
        }
 
        User user = userMapper.registerUser(registerDTO);

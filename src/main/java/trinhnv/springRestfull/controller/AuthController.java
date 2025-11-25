@@ -1,93 +1,153 @@
 package trinhnv.springRestfull.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import trinhnv.springRestfull.domain.dto.LoginDTO;
+import trinhnv.springRestfull.domain.dto.RefreshTokenRequestDTO;
 import trinhnv.springRestfull.domain.dto.RegisterDTO;
 import trinhnv.springRestfull.domain.dto.ResLoginDTO;
 import trinhnv.springRestfull.domain.dto.UserDTO;
+import trinhnv.springRestfull.domain.entity.ApiResponse;
+import trinhnv.springRestfull.service.AuthService;
 import trinhnv.springRestfull.service.UserService;
-import trinhnv.springRestfull.util.SecurityUtil;
 
-
+/**
+ * ===================================================================
+ * AUTH CONTROLLER (STATELESS)
+ * ===================================================================
+ * 
+ * Controller xử lý authentication endpoints theo hướng STATELESS.
+ * 
+ * Endpoints:
+ * - POST /auth/login     : Đăng nhập, trả về Access Token + Refresh Token (JWT)
+ * - POST /auth/register  : Đăng ký user mới
+ * - POST /auth/refresh   : Refresh tokens
+ * - POST /auth/logout    : Logout (client-side only)
+ * 
+ * STATELESS NOTES:
+ * - Cả Access Token và Refresh Token đều là JWT
+ * - Không lưu token vào database
+ * - Logout không invalidate token (client phải xóa)
+ * 
+ * @author trinhnv
+ */
 @RestController
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    /**
-     * AuthenticationManager: Quản lý quá trình xác thực
-     * - Tự động tìm UserDetailsService (UserDetailCustorm) trong Spring context
-     * - Gọi loadUserByUsername() để lấy user từ database
-     * - So sánh password bằng PasswordEncoder
-     */
-    private final AuthenticationManager authenticationManager;
-    private  final UserService userService;
+    private final AuthService authService;
+    private final UserService userService;
 
     /**
-     * SecurityUtil: Utility class để tạo JWT token
-     * - Nhận Authentication object (sau khi xác thực thành công)
-     * - Tạo JWT token với thông tin user và thời gian hết hạn
+     * ===================================================================
+     * LOGIN
+     * ===================================================================
+     * 
+     * POST /auth/login
+     * 
+     * Request Body:
+     * {
+     *   "username": "string",
+     *   "password": "string"
+     * }
+     * 
+     * Response:
+     * {
+     *   "access_token": "eyJhbG...",      // JWT Access Token
+     *   "refresh_token": "eyJhbG...",     // JWT Refresh Token  
+     *   "expires_in": 900,
+     *   "refresh_expires_in": 604800,
+     *   "token_type": "Bearer",
+     *   "user": { "id": 1, "username": "string", "email": "string" }
+     * }
      */
-    private final SecurityUtil securityUtil;
-
     @PostMapping("/login")
-    public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
-
-        // ============================================================
-        // BƯỚC 1: TẠO AUTHENTICATION TOKEN
-        // ============================================================
-        // UsernamePasswordAuthenticationToken là input cho AuthenticationManager
-        // Chứa username và password (plain text) từ client
-        UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(
-                    loginDTO.getUsername(),  // Username từ request
-                    loginDTO.getPassword()   // Password từ request (plain text)
-                );
-
-        // ============================================================
-        // BƯỚC 2: XÁC THỰC NGƯỜI DÙNG
-        // ============================================================
-        // AuthenticationManager sẽ:
-        // 1. Tìm UserDetailsService (UserDetailCustorm) trong Spring context
-        // 2. Gọi loadUserByUsername(username) để lấy user từ database
-        // 3. So sánh password bằng PasswordEncoder (BCrypt)
-        // 4. Nếu thành công → Trả về Authentication object
-        // 5. Nếu thất bại → Throw BadCredentialsException
-        //    → Xử lý bởi GlobalException.handleUserPrincipalNotFound()
-        Authentication authentication = authenticationManager.authenticate(authenticationToken);
-
-        // ============================================================
-        // BƯỚC 3: TẠO JWT TOKEN
-        // ============================================================
-        // Nếu đến đây → Xác thực thành công
-        // Tạo JWT token từ Authentication object
-        // Token chứa: username, thời gian tạo, thời gian hết hạn
-        String accessToken = this.securityUtil.createToken(authentication);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        // ============================================================
-        // BƯỚC 4: TRẢ VỀ TOKEN CHO CLIENT
-        // ============================================================
-        // Client sẽ lưu token và dùng cho các request tiếp theo
-        // Header: Authorization: Bearer <token>
-        ResLoginDTO res = new ResLoginDTO();
-        res.setToken(accessToken);
-
-        return ResponseEntity.ok().body(res);
+    public ResponseEntity<ResLoginDTO> login(
+            @Valid @RequestBody LoginDTO loginDTO,
+            HttpServletRequest request) {
+        
+        ResLoginDTO response = authService.login(loginDTO, request);
+        return ResponseEntity.ok(response);
     }
 
+    /**
+     * ===================================================================
+     * REGISTER
+     * ===================================================================
+     * 
+     * POST /auth/register
+     */
     @PostMapping("/register")
     public ResponseEntity<UserDTO> register(@Valid @RequestBody RegisterDTO registerDTO) {
-
-        return ResponseEntity.ok().body(new UserDTO());
+        UserDTO userDTO = userService.handleCreateRegisterUser(registerDTO);
+        return ResponseEntity.ok(userDTO);
     }
 
+    /**
+     * ===================================================================
+     * REFRESH TOKEN
+     * ===================================================================
+     * 
+     * POST /auth/refresh
+     * 
+     * Verify JWT refresh token và tạo tokens mới.
+     * 
+     * Request Body:
+     * {
+     *   "refreshToken": "eyJhbG..."  // JWT refresh token
+     * }
+     * 
+     * Response: Giống login response (tokens mới)
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<ResLoginDTO> refreshToken(
+            @Valid @RequestBody RefreshTokenRequestDTO requestDTO,
+            HttpServletRequest httpRequest) {
+        
+        ResLoginDTO response = authService.refreshToken(requestDTO, httpRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * ===================================================================
+     * LOGOUT (STATELESS)
+     * ===================================================================
+     * 
+     * POST /auth/logout
+     * 
+     * ⚠️ STATELESS LIMITATION:
+     * Với JWT stateless, server KHÔNG THỂ invalidate token.
+     * Endpoint này chỉ để client biết đã "logout".
+     * 
+     * Client PHẢI:
+     * - Xóa access_token và refresh_token khỏi storage
+     * - Không gửi tokens trong requests tiếp theo
+     * 
+     * Request Body:
+     * {
+     *   "refreshToken": "eyJhbG..."  // Optional
+     * }
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @RequestBody(required = false) RefreshTokenRequestDTO requestDTO) {
+        
+        // Stateless: Server không làm gì
+        // Chỉ trả về response để client biết
+        authService.logout(requestDTO != null ? requestDTO.getRefreshToken() : null);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .statusCode(200)
+                        .message("Đăng xuất thành công. Vui lòng xóa tokens ở client.")
+                        .build()
+        );
+    }
 }

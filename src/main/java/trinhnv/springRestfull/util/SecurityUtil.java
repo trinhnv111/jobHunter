@@ -1,179 +1,234 @@
 package trinhnv.springRestfull.util;
 
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
+import trinhnv.springRestfull.config.TokenConfig;
+import trinhnv.springRestfull.domain.entity.User;
+import trinhnv.springRestfull.util.error.InvalidTokenException;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.stream.Collectors;
 
 /**
  * ===================================================================
- * SECURITY UTIL - UTILITY CLASS ĐỂ TẠO JWT TOKEN
+ * SECURITY UTIL - JWT TOKEN UTILITY (STATELESS)
  * ===================================================================
  * 
- * Class này chịu trách nhiệm tạo JWT token sau khi xác thực thành công.
+ * Utility class để tạo và quản lý JWT Tokens theo hướng STATELESS.
  * 
- * LUỒNG SỬ DỤNG:
- * AuthController.login()
- *   → AuthenticationManager.authenticate() thành công
- *   → Gọi SecurityUtil.createToken(authentication)
- *   → Tạo JWT token với thông tin user và thời gian hết hạn
- *   → Trả về token string cho client
+ * STATELESS APPROACH:
+ * - Cả Access Token và Refresh Token đều là JWT
+ * - KHÔNG lưu token vào database
+ * - Verify token bằng signature, không cần query DB
+ * - Scalable, phù hợp microservices
  * 
- * CẤU TRÚC JWT TOKEN:
- * Header.Payload.Signature
+ * TOKEN TYPES:
+ * - Access Token: JWT, short-lived (15 phút), dùng cho API requests
+ * - Refresh Token: JWT, long-lived (7 ngày), dùng để lấy access token mới
  * 
- * Header: {
- *   "alg": "HS512",  // Thuật toán mã hóa
- *   "typ": "JWT"
- * }
+ * TRADE-OFFS:
+ * - ❌ Không thể revoke token (phải đợi hết hạn)
+ * - ❌ Logout không thực sự logout
+ * - ✅ Không cần database cho tokens
+ * - ✅ Scalable, stateless
  * 
- * Payload: {
- *   "sub": "trinhnv",           // Username (subject)
- *   "iat": 1234567890,          // Thời gian tạo (issued at)
- *   "exp": 1234654290,          // Thời gian hết hạn (expires at)
- *   "trinhnv": {...}            // Thông tin authentication (custom claim)
- * }
- * 
- * Signature: HMACSHA512(
- *   base64UrlEncode(header) + "." + base64UrlEncode(payload),
- *   secretKey
- * )
- * 
+ * @see TokenConfig
  * @author trinhnv
  */
 @Service
+@RequiredArgsConstructor
 public class SecurityUtil {
     
-    /**
-     * JwtEncoder: Encoder để tạo và mã hóa JWT token
-     * Được inject từ SecurityConfiguration.jwtEncoder()
-     */
     private final JwtEncoder jwtEncoder;
-
-    /**
-     * Constructor injection - Spring tự động inject JwtEncoder
-     * 
-     * @param jwtEncoder JwtEncoder từ SecurityConfiguration
-     */
-    public SecurityUtil(JwtEncoder jwtEncoder) {
-        this.jwtEncoder = jwtEncoder;
-    }
+    private final JwtDecoder jwtDecoder;
+    private final TokenConfig tokenConfig;
     
     /**
-     * ===================================================================
-     * JWT ALGORITHM - THUẬT TOÁN MÃ HÓA JWT
-     * ===================================================================
-     * 
-     * HS512 (HMAC-SHA512):
-     * - Thuật toán mã hóa đối xứng (symmetric)
-     * - Dùng secret key để ký và xác thực token
-     * - Nhanh và phù hợp cho ứng dụng single-server
-     * 
-     * Lưu ý: Nếu có nhiều server, nên dùng RS256 (asymmetric)
+     * JWT Algorithm: HS512 (HMAC-SHA512)
      */
     public static final MacAlgorithm JWT_ALGORITHM = MacAlgorithm.HS512;
-    
-    /**
-     * Secret key để ký JWT token (từ application.properties)
-     * Lưu ý: Không sử dụng trong class này, chỉ để tham khảo
-     */
-    @Value("${trinhnguyen.jwtKey}")
-    private String jwtSecretKey;
-    
-    /**
-     * Thời gian sống của token (giây) - từ application.properties
-     * Ví dụ: 86400 = 24 giờ
-     */
-    @Value("${trinhnguyen.jwtSecond}")
-    private long jwtSecond;
+
+    // ===================================================================
+    // ACCESS TOKEN
+    // ===================================================================
 
     /**
-     * ===================================================================
-     * CREATE TOKEN - TẠO JWT TOKEN TỪ AUTHENTICATION OBJECT
-     * ===================================================================
+     * Tạo Access Token từ Authentication (sau login)
      * 
-     * Method này được gọi sau khi xác thực thành công để tạo JWT token.
-     * 
-     * LUỒNG XỬ LÝ:
-     * 
-     * Bước 1: Tính toán thời gian
-     *   - now: Thời điểm hiện tại
-     *   - validity: Thời điểm hết hạn (now + jwtSecond giây)
-     * 
-     * Bước 2: Tạo JwtClaimsSet (Payload của token)
-     *   - issuedAt: Thời gian tạo token
-     *   - expiresAt: Thời gian hết hạn token
-     *   - subject: Username (authentication.getName())
-     *   - claim: Thông tin authentication (custom claim)
-     * 
-     * Bước 3: Tạo JwsHeader
-     *   - algorithm: HS512
-     * 
-     * Bước 4: Mã hóa và ký token
-     *   - JwtEncoder.encode() sẽ:
-     *     a) Mã hóa header và payload thành Base64URL
-     *     b) Ký token bằng secret key (HMAC-SHA512)
-     *     c) Tạo chuỗi token: header.payload.signature
-     * 
-     * Bước 5: Trả về token string
-     *   - Client sẽ lưu token này
-     *   - Gửi kèm trong header: Authorization: Bearer <token>
-     * 
-     * ⚠️ LƯU Ý:
-     * - Token sẽ hết hạn sau jwtSecond giây
-     * - Khi token hết hạn, client phải đăng nhập lại
-     * - Token được ký bằng secret key, không thể giả mạo
-     * 
-     * @param authentication Authentication object sau khi xác thực thành công
-     * @return JWT token string (ví dụ: "eyJhbGciOiJIUzUxMiJ9...")
+     * @param authentication Authentication object từ AuthenticationManager
+     * @return JWT access token string
      */
-    public String createToken(Authentication authentication) {
-        
-        // ============================================================
-        // BƯỚC 1: TÍNH TOÁN THỜI GIAN
-        // ============================================================
-        // now: Thời điểm hiện tại
+    public String createAccessToken(Authentication authentication) {
         Instant now = Instant.now();
-        
-        // validity: Thời điểm hết hạn (now + jwtSecond giây)
-        // Ví dụ: jwtSecond = 86400 → Token hết hạn sau 24 giờ
-        Instant validity = now.plus(jwtSecond, ChronoUnit.SECONDS);
+        Instant validity = now.plus(tokenConfig.getAccessTokenExpiration(), ChronoUnit.SECONDS);
 
-        // ============================================================
-        // BƯỚC 2: TẠO JWT CLAIMS SET (PAYLOAD)
-        // ============================================================
-        // Claims là thông tin chứa trong token
+        String authorities = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(" "));
+
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuedAt(now)                              // Thời gian tạo token
-                .expiresAt(validity)                       // Thời gian hết hạn token
-                .subject(authentication.getName())          // Username (subject)
-                .claim("trinhnv", authentication)          // Custom claim: Thông tin authentication
+                .issuedAt(now)
+                .expiresAt(validity)
+                .subject(authentication.getName())
+                .claim("type", "access")
+                .claim("authorities", authorities)
                 .build();
-        
-        // ============================================================
-        // BƯỚC 3: TẠO JWS HEADER
-        // ============================================================
-        // Header chứa thuật toán mã hóa (HS512)
+
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
-        
-        // ============================================================
-        // BƯỚC 4: MÃ HÓA VÀ KÝ TOKEN
-        // ============================================================
-        // JwtEncoder.encode() sẽ:
-        // 1. Mã hóa header và payload thành Base64URL
-        // 2. Ký token bằng secret key (HMAC-SHA512)
-        // 3. Tạo chuỗi token: header.payload.signature
-        // 
-        // Ví dụ token:
-        // eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0cmluaG52IiwiZXhwIjoxNzM...
+
         return this.jwtEncoder.encode(
                 JwtEncoderParameters.from(jwsHeader, claims)
         ).getTokenValue();
+    }
+
+    /**
+     * Tạo Access Token từ User entity (khi refresh)
+     * 
+     * @param user User entity
+     * @return JWT access token string
+     */
+    public String createAccessTokenFromUser(User user) {
+        Instant now = Instant.now();
+        Instant validity = now.plus(tokenConfig.getAccessTokenExpiration(), ChronoUnit.SECONDS);
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuedAt(now)
+                .expiresAt(validity)
+                .subject(user.getUserName())
+                .claim("type", "access")
+                .claim("userId", user.getId())
+                .claim("email", user.getEmail())
+                .claim("authorities", "ROLE_USER")
+                .build();
+
+        JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
+
+        return this.jwtEncoder.encode(
+                JwtEncoderParameters.from(jwsHeader, claims)
+        ).getTokenValue();
+    }
+
+    // ===================================================================
+    // REFRESH TOKEN (JWT - STATELESS)
+    // ===================================================================
+
+    /**
+     * Tạo Refresh Token (JWT)
+     * 
+     * Refresh Token cũng là JWT nhưng:
+     * - Thời gian sống dài hơn (7 ngày)
+     * - Chỉ chứa thông tin cần thiết (username, userId)
+     * - Dùng để lấy access token mới
+     * 
+     * @param user User entity
+     * @return JWT refresh token string
+     */
+    public String createRefreshToken(User user) {
+        Instant now = Instant.now();
+        Instant validity = now.plus(tokenConfig.getRefreshTokenExpiration(), ChronoUnit.SECONDS);
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuedAt(now)
+                .expiresAt(validity)
+                .subject(user.getUserName())
+                .claim("type", "refresh")  // Đánh dấu đây là refresh token
+                .claim("userId", user.getId())
+                .build();
+
+        JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
+
+        return this.jwtEncoder.encode(
+                JwtEncoderParameters.from(jwsHeader, claims)
+        ).getTokenValue();
+    }
+
+    /**
+     * Verify và decode Refresh Token
+     * 
+     * @param refreshToken JWT refresh token string
+     * @return Jwt object nếu valid
+     * @throws InvalidTokenException nếu token không hợp lệ
+     */
+    public Jwt verifyRefreshToken(String refreshToken) {
+        try {
+            Jwt jwt = jwtDecoder.decode(refreshToken);
+            
+            // Kiểm tra type phải là "refresh"
+            String tokenType = jwt.getClaim("type");
+            if (!"refresh".equals(tokenType)) {
+                throw new InvalidTokenException("Token không phải là refresh token");
+            }
+            
+            return jwt;
+        } catch (JwtException e) {
+            throw new InvalidTokenException("Refresh token không hợp lệ: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Lấy username từ Refresh Token
+     * 
+     * @param refreshToken JWT refresh token string
+     * @return username
+     */
+    public String getUsernameFromRefreshToken(String refreshToken) {
+        Jwt jwt = verifyRefreshToken(refreshToken);
+        return jwt.getSubject();
+    }
+
+    /**
+     * Lấy userId từ Refresh Token
+     * 
+     * @param refreshToken JWT refresh token string
+     * @return userId
+     */
+    public Long getUserIdFromRefreshToken(String refreshToken) {
+        Jwt jwt = verifyRefreshToken(refreshToken);
+        return jwt.getClaim("userId");
+    }
+
+    // ===================================================================
+    // UTILITY METHODS
+    // ===================================================================
+
+    /**
+     * Lấy username từ JWT token
+     */
+    public String getUsernameFromToken(Jwt jwt) {
+        return jwt.getSubject();
+    }
+
+    /**
+     * Lấy claim từ JWT token
+     */
+    public Object getClaimFromToken(Jwt jwt, String claimName) {
+        return jwt.getClaim(claimName);
+    }
+
+    /**
+     * Get access token expiration (for response)
+     */
+    public long getAccessTokenExpiration() {
+        return tokenConfig.getAccessTokenExpiration();
+    }
+
+    /**
+     * Get refresh token expiration (for response)
+     */
+    public long getRefreshTokenExpiration() {
+        return tokenConfig.getRefreshTokenExpiration();
+    }
+
+    /**
+     * @deprecated Sử dụng createAccessToken() thay thế
+     */
+    @Deprecated
+    public String createToken(Authentication authentication) {
+        return createAccessToken(authentication);
     }
 }
