@@ -78,7 +78,8 @@ public class SecurityConfiguration {
                                 "/",
                                 "/auth/login",
                                 "/auth/register",
-                                "/auth/refresh"    // Refresh không cần access token
+                                "/auth/refresh",
+                                "/auth/logout"
                         ).permitAll()
                         
                         // Tất cả endpoint khác - PHẢI CÓ TOKEN HỢP LỆ
