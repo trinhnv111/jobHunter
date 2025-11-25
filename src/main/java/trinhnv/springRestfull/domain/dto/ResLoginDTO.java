@@ -1,5 +1,6 @@
 package trinhnv.springRestfull.domain.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
@@ -11,8 +12,8 @@ import lombok.*;
  * Response trả về sau khi login/refresh thành công.
  * 
  * Bao gồm:
- * - Access Token: JWT, short-lived
- * - Refresh Token: UUID, long-lived
+ * - Access Token: JWT, short-lived (trả về trong body)
+ * - Refresh Token: JWT, long-lived (set vào httpOnly cookie, không trả về body)
  * - Thông tin expiration
  * - User info (optional)
  * 
@@ -23,6 +24,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)  // Không serialize fields null
 public class ResLoginDTO {
 
     /**
@@ -35,25 +37,10 @@ public class ResLoginDTO {
     private String accessToken;
 
     /**
-     * Refresh Token (UUID)
-     * - Dùng để lấy access token mới
-     * - Long-lived: 7 ngày
-     * - Lưu an toàn ở client (httpOnly cookie recommended)
-     */
-    @JsonProperty("refresh_token")
-    private String refreshToken;
-
-    /**
      * Access token expiration time (seconds)
      */
     @JsonProperty("expires_in")
     private long expiresIn;
-
-    /**
-     * Refresh token expiration time (seconds)
-     */
-    @JsonProperty("refresh_expires_in")
-    private long refreshExpiresIn;
 
     /**
      * Token type: "Bearer"
@@ -75,30 +62,11 @@ public class ResLoginDTO {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class UserInfo {
         private Long id;
         private String username;
         private String email;
         private String role;
-    }
-
-    // ===================================================================
-    // LEGACY SUPPORT - Backward compatibility
-    // ===================================================================
-    
-    /**
-     * @deprecated Sử dụng getAccessToken() thay thế
-     */
-    @Deprecated
-    public String getToken() {
-        return this.accessToken;
-    }
-
-    /**
-     * @deprecated Sử dụng setAccessToken() thay thế
-     */
-    @Deprecated
-    public void setToken(String token) {
-        this.accessToken = token;
     }
 }

@@ -30,6 +30,4 @@ public class User extends AbstractAuditingEntity <Long>{
 
     private String address;
 
-    private String refreshToken;
-
 }

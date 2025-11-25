@@ -11,11 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import trinhnv.springRestfull.config.TokenConfig;
 import trinhnv.springRestfull.domain.dto.LoginDTO;
-import trinhnv.springRestfull.domain.dto.RefreshTokenRequestDTO;
+import trinhnv.springRestfull.domain.dto.LoginResult;
 import trinhnv.springRestfull.domain.dto.ResLoginDTO;
 import trinhnv.springRestfull.domain.entity.User;
 import trinhnv.springRestfull.util.SecurityUtil;
-import trinhnv.springRestfull.util.constant.TokenConstant;
 
 /**
  * ===================================================================
@@ -29,13 +28,9 @@ import trinhnv.springRestfull.util.constant.TokenConstant;
  * - KHÔNG lưu token vào database
  * - Verify token bằng signature
  * 
- * Features:
- * - Login: Xác thực credentials, trả về Access Token + Refresh Token (JWT)
- * - Refresh: Verify refresh token JWT, tạo tokens mới
- * 
- * LIMITATIONS (do stateless):
- * - Không thể revoke token
- * - Logout không thực sự invalidate token
+ * TOKEN STORAGE:
+ * - Access Token: Trả về trong response body
+ * - Refresh Token: Set vào httpOnly cookie (do Controller xử lý)
  * 
  * @author trinhnv
  */
@@ -57,47 +52,51 @@ public class AuthService {
      * 
      * Xác thực user và trả về Access Token + Refresh Token.
      * 
-     * Flow:
-     * 1. Validate credentials với AuthenticationManager
-     * 2. Lấy user từ database
-     * 3. Tạo Access Token (JWT, 15 phút)
-     * 4. Tạo Refresh Token (JWT, 7 ngày)
-     * 5. Trả về response
-     * 
      * @param loginDTO Login credentials
      * @param request HTTP request
-     * @return ResLoginDTO với tokens
+     * @return LoginResult chứa cả accessToken và refreshToken
      */
     @Transactional(readOnly = true)
-    public ResLoginDTO login(LoginDTO loginDTO, HttpServletRequest request) {
-        log.info("Login attempt for user: {}", loginDTO.getUsername());
+    public LoginResult login(LoginDTO loginDTO, HttpServletRequest request) {
+        log.info("Login attempt | username={}", loginDTO.getUsername());
         
-        // 1. Authenticate với Spring Security
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(
-                        loginDTO.getUsername(),
-                        loginDTO.getPassword()
-                );
-        Authentication authentication = authenticationManager.authenticate(authToken);
+        Authentication authentication;
+        try {
+            // 1. Authenticate với Spring Security
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(
+                            loginDTO.getUsername(),
+                            loginDTO.getPassword()
+                    );
+            authentication = authenticationManager.authenticate(authToken);
+            log.debug("Authenticate success | username={}", loginDTO.getUsername());
+        } catch (Exception ex) {
+            log.error("Authenticate failed | username={} | reason={}",
+                    loginDTO.getUsername(), ex.getMessage(), ex);
+            throw ex;
+        }
 
         // 2. Get user entity
         User user = userService.hanldeUser(loginDTO.getUsername());
+        if (user == null) {
+            log.error("User not found after authentication | username={}", loginDTO.getUsername());
+            throw new RuntimeException("User không tồn tại");
+        }
 
         // 3. Create Access Token (JWT)
         String accessToken = securityUtil.createAccessToken(authentication);
 
-        // 4. Create Refresh Token (JWT) - STATELESS, không lưu DB
+        // 4. Create Refresh Token (JWT)
         String refreshToken = securityUtil.createRefreshToken(user);
 
-        log.info("Login successful for user: {}", loginDTO.getUsername());
+        log.info("Login successful | username={}", loginDTO.getUsername());
 
-        // 5. Build response
-        return ResLoginDTO.builder()
+        // 5. Build result (Controller sẽ set refreshToken vào cookie)
+        return LoginResult.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .expiresIn(tokenConfig.getAccessTokenExpiration())
                 .refreshExpiresIn(tokenConfig.getRefreshTokenExpiration())
-                .tokenType(TokenConstant.TOKEN_TYPE)
                 .user(ResLoginDTO.UserInfo.builder()
                         .id(user.getId())
                         .username(user.getUserName())
@@ -113,81 +112,61 @@ public class AuthService {
      * 
      * Verify refresh token JWT và tạo tokens mới.
      * 
-     * Flow:
-     * 1. Verify refresh token JWT (signature + expiration)
-     * 2. Lấy username từ JWT claims
-     * 3. Query user từ database
-     * 4. Tạo access token mới
-     * 5. Tạo refresh token mới
-     * 6. Trả về tokens mới
-     * 
-     * NOTE: Stateless nên không có token rotation hay revocation
-     * 
-     * @param requestDTO Refresh token request
-     * @param httpRequest HTTP request
-     * @return ResLoginDTO với tokens mới
+     * @param refreshToken Refresh token từ cookie
+     * @return LoginResult với tokens mới
      */
     @Transactional(readOnly = true)
-    public ResLoginDTO refreshToken(RefreshTokenRequestDTO requestDTO, HttpServletRequest httpRequest) {
+    public LoginResult refreshToken(String refreshToken) {
         log.debug("Refresh token request received");
         
         // 1. Verify refresh token JWT
-        String username = securityUtil.getUsernameFromRefreshToken(requestDTO.getRefreshToken());
+        String username;
+        try {
+            username = securityUtil.getUsernameFromRefreshToken(refreshToken);
+        } catch (Exception ex) {
+            log.error("Refresh token invalid | reason={}", ex.getMessage(), ex);
+            throw ex;
+        }
 
         // 2. Query user từ database
         User user = userService.hanldeUser(username);
         if (user == null) {
+            log.error("Refresh token references non-existing user | username={}", username);
             throw new RuntimeException("User không tồn tại");
         }
 
         // 3. Create new Access Token
-        String accessToken = securityUtil.createAccessTokenFromUser(user);
+        String newAccessToken = securityUtil.createAccessTokenFromUser(user);
 
         // 4. Create new Refresh Token
-        String refreshToken = securityUtil.createRefreshToken(user);
+        String newRefreshToken = securityUtil.createRefreshToken(user);
 
-        log.debug("Token refreshed for user: {}", username);
+        log.debug("Token refreshed | username={}", username);
 
-        // 5. Build response
-        return ResLoginDTO.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
+        // 5. Build result
+        return LoginResult.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
                 .expiresIn(tokenConfig.getAccessTokenExpiration())
                 .refreshExpiresIn(tokenConfig.getRefreshTokenExpiration())
-                .tokenType(TokenConstant.TOKEN_TYPE)
                 .build();
     }
 
     /**
      * ===================================================================
-     * LOGOUT (STATELESS - Limited functionality)
+     * LOGOUT
      * ===================================================================
      * 
-     * ⚠️ STATELESS LIMITATION:
-     * Với stateless JWT, logout KHÔNG THỂ invalidate token.
-     * Token vẫn valid cho đến khi hết hạn.
-     * 
-     * Client-side phải:
-     * - Xóa tokens khỏi storage
-     * - Không gửi token trong requests tiếp theo
-     * 
-     * @param refreshToken Refresh token (không dùng trong stateless)
+     * Với stateless JWT, server chỉ cần xóa cookie.
+     * Token vẫn valid đến khi hết hạn nhưng client không có nữa.
      */
-    public void logout(String refreshToken) {
-        log.info("Logout request received (stateless - client should remove tokens)");
-        // Stateless: Không làm gì ở server
-        // Client phải tự xóa tokens khỏi storage
+    public void logout() {
+        log.info("Logout request received");
+        // Cookie sẽ được xóa ở Controller
     }
 
     /**
-     * ===================================================================
-     * GET CURRENT USER FROM TOKEN
-     * ===================================================================
-     * 
-     * Lấy user từ username trong JWT token.
-     * 
-     * @param username Username từ JWT subject
-     * @return User entity
+     * Get current user from username
      */
     public User getCurrentUser(String username) {
         return userService.hanldeUser(username);

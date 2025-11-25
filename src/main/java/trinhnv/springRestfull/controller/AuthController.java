@@ -1,22 +1,20 @@
 package trinhnv.springRestfull.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import trinhnv.springRestfull.common.annotation.ApiMessage;
-import trinhnv.springRestfull.domain.dto.LoginDTO;
-import trinhnv.springRestfull.domain.dto.RefreshTokenRequestDTO;
-import trinhnv.springRestfull.domain.dto.RegisterDTO;
-import trinhnv.springRestfull.domain.dto.ResLoginDTO;
-import trinhnv.springRestfull.domain.dto.UserDTO;
+import trinhnv.springRestfull.config.TokenConfig;
+import trinhnv.springRestfull.domain.dto.*;
 import trinhnv.springRestfull.domain.entity.ApiResponse;
 import trinhnv.springRestfull.service.AuthService;
 import trinhnv.springRestfull.service.UserService;
+import trinhnv.springRestfull.util.error.InvalidTokenException;
 
 /**
  * ===================================================================
@@ -25,16 +23,15 @@ import trinhnv.springRestfull.service.UserService;
  * 
  * Controller xử lý authentication endpoints theo hướng STATELESS.
  * 
- * Endpoints:
- * - POST /auth/login     : Đăng nhập, trả về Access Token + Refresh Token (JWT)
- * - POST /auth/register  : Đăng ký user mới
- * - POST /auth/refresh   : Refresh tokens
- * - POST /auth/logout    : Logout (client-side only)
+ * TOKEN STORAGE:
+ * - Access Token: Trả về trong response body
+ * - Refresh Token: Set vào httpOnly cookie (an toàn, không bị XSS)
  * 
- * STATELESS NOTES:
- * - Cả Access Token và Refresh Token đều là JWT
- * - Không lưu token vào database
- * - Logout không invalidate token (client phải xóa)
+ * Endpoints:
+ * - POST /auth/login     : Đăng nhập
+ * - POST /auth/register  : Đăng ký user mới
+ * - POST /auth/refresh   : Refresh tokens (đọc RT từ cookie)
+ * - POST /auth/logout    : Logout (xóa cookie)
  * 
  * @author trinhnv
  */
@@ -42,9 +39,13 @@ import trinhnv.springRestfull.service.UserService;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
-
     private final AuthService authService;
     private final UserService userService;
+
+    /**
+     * Cookie name for refresh token
+     */
+    private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     /**
      * ===================================================================
@@ -53,38 +54,35 @@ public class AuthController {
      * 
      * POST /auth/login
      * 
-     * Request Body:
-     * {
-     *   "username": "string",
-     *   "password": "string"
-     * }
-     * 
      * Response:
-     * {
-     *   "access_token": "eyJhbG...",      // JWT Access Token
-     *   "refresh_token": "eyJhbG...",     // JWT Refresh Token  
-     *   "expires_in": 900,
-     *   "refresh_expires_in": 604800,
-     *   "token_type": "Bearer",
-     *   "user": { "id": 1, "username": "string", "email": "string" }
-     * }
+     * - Body: { access_token, expires_in, token_type, user }
+     * - Cookie: refresh_token (httpOnly, secure, sameSite=Strict)
      */
     @PostMapping("/login")
     @ApiMessage("Đăng nhập thành công")
     public ResponseEntity<ResLoginDTO> login(
             @Valid @RequestBody LoginDTO loginDTO,
-            HttpServletRequest request) {
+            HttpServletRequest request,
+            HttpServletResponse response) {
         
-        ResLoginDTO response = authService.login(loginDTO, request);
-        return ResponseEntity.ok(response);
+        // 1. Authenticate và lấy tokens
+        LoginResult result = authService.login(loginDTO, request);
+        
+        // 2. Set refresh token vào httpOnly cookie
+        ResponseCookie refreshCookie = createRefreshTokenCookie(
+                result.getRefreshToken(), 
+                result.getRefreshExpiresIn()
+        );
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+        
+        // 3. Trả về response (chỉ có access token, không có refresh token)
+        return ResponseEntity.ok(result.toResLoginDTO());
     }
 
     /**
      * ===================================================================
      * REGISTER
      * ===================================================================
-     * 
-     * POST /auth/register
      */
     @PostMapping("/register")
     @ApiMessage("Đăng ký tài khoản thành công")
@@ -100,58 +98,83 @@ public class AuthController {
      * 
      * POST /auth/refresh
      * 
-     * Verify JWT refresh token và tạo tokens mới.
+     * Đọc refresh token từ cookie, tạo tokens mới.
      * 
-     * Request Body:
-     * {
-     *   "refreshToken": "eyJhbG..."  // JWT refresh token
-     * }
-     * 
-     * Response: Giống login response (tokens mới)
+     * Response:
+     * - Body: { access_token, expires_in, token_type }
+     * - Cookie: refresh_token (mới)
      */
     @PostMapping("/refresh")
     @ApiMessage("Làm mới token thành công")
     public ResponseEntity<ResLoginDTO> refreshToken(
-            @Valid @RequestBody RefreshTokenRequestDTO requestDTO,
-            HttpServletRequest httpRequest) {
+            @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
+            HttpServletResponse response) {
         
-        ResLoginDTO response = authService.refreshToken(requestDTO, httpRequest);
-        return ResponseEntity.ok(response);
+        // 1. Kiểm tra refresh token từ cookie
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            throw new InvalidTokenException("Refresh token không tồn tại. Vui lòng đăng nhập lại.");
+        }
+        
+        // 2. Verify và tạo tokens mới
+        LoginResult result = authService.refreshToken(refreshToken);
+        
+        // 3. Set refresh token mới vào cookie
+        ResponseCookie newRefreshCookie = createRefreshTokenCookie(
+                result.getRefreshToken(),
+                result.getRefreshExpiresIn()
+        );
+        response.addHeader(HttpHeaders.SET_COOKIE, newRefreshCookie.toString());
+        
+        // 4. Trả về access token mới
+        return ResponseEntity.ok(result.toResLoginDTO());
     }
 
     /**
      * ===================================================================
-     * LOGOUT (STATELESS)
+     * LOGOUT
      * ===================================================================
      * 
      * POST /auth/logout
      * 
-     * ⚠️ STATELESS LIMITATION:
-     * Với JWT stateless, server KHÔNG THỂ invalidate token.
-     * Endpoint này chỉ để client biết đã "logout".
-     * 
-     * Client PHẢI:
-     * - Xóa access_token và refresh_token khỏi storage
-     * - Không gửi tokens trong requests tiếp theo
-     * 
-     * Request Body:
-     * {
-     *   "refreshToken": "eyJhbG..."  // Optional
-     * }
+     * Xóa refresh token cookie.
+     * Access token vẫn valid đến khi hết hạn (stateless limitation).
      */
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(
-            @RequestBody(required = false) RefreshTokenRequestDTO requestDTO) {
+    @ApiMessage("Đăng xuất thành công")
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletResponse response) {
         
-        // Stateless: Server không làm gì
-        // Chỉ trả về response để client biết
-        authService.logout(requestDTO != null ? requestDTO.getRefreshToken() : null);
+        // Xóa refresh token cookie
+        ResponseCookie deleteCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)  // Xóa cookie
+                .sameSite("Strict")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+        
+        authService.logout();
         
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()
                         .statusCode(200)
-                        .message("Đăng xuất thành công. Vui lòng xóa tokens ở client.")
+                        .message("Đăng xuất thành công")
                         .build()
         );
+    }
+
+    /**
+     * ===================================================================
+     * HELPER: Tạo refresh token cookie
+     * ===================================================================
+     */
+    private ResponseCookie createRefreshTokenCookie(String refreshToken, long maxAgeSeconds) {
+        return ResponseCookie.from(REFRESH_TOKEN_COOKIE, refreshToken)
+                .httpOnly(true)           // Không thể access bằng JavaScript (chống XSS)
+                .secure(true)             // Chỉ gửi qua HTTPS
+                .path("/")                // Cookie valid cho tất cả paths
+                .maxAge(maxAgeSeconds)    // Thời gian sống của cookie
+                .sameSite("Strict")       // Chống CSRF
+                .build();
     }
 }

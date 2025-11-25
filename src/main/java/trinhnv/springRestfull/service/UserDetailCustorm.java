@@ -51,6 +51,8 @@ public class UserDetailCustorm implements UserDetailsService {
      * 
      * @param userService UserService để truy vấn database
      */
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UserDetailCustorm.class);
+    
     public UserDetailCustorm(UserService userService) {
         this.userService = userService;
     }
@@ -101,6 +103,7 @@ public class UserDetailCustorm implements UserDetailsService {
         // ============================================================
         // Gọi UserService → UserRepository → Database
         // Query: SELECT * FROM user WHERE user_name = ?
+        log.debug("loadUserByUsername called | username={}", username);
         User user = this.userService.hanldeUser(username);
 
         // ============================================================
@@ -110,8 +113,10 @@ public class UserDetailCustorm implements UserDetailsService {
         // Exception này sẽ được Spring Security xử lý
         // → Trả về 401 Unauthorized cho client
         if (user == null) {
+            log.warn("User not found in database | username={}", username);
             throw new UsernameNotFoundException("không tìm thấy: " + username);
         }
+        log.debug("User loaded | username={} | encodedPassword={}", username, user.getPassWord());
 
         // ============================================================
         // BƯỚC 3: TẠO USERDETAILS OBJECT
