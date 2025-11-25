@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import trinhnv.springRestfull.common.annotation.ApiMessage;
 import trinhnv.springRestfull.domain.dto.LoginDTO;
 import trinhnv.springRestfull.domain.dto.RefreshTokenRequestDTO;
 import trinhnv.springRestfull.domain.dto.RegisterDTO;
@@ -69,6 +70,7 @@ public class AuthController {
      * }
      */
     @PostMapping("/login")
+    @ApiMessage("Đăng nhập thành công")
     public ResponseEntity<ResLoginDTO> login(
             @Valid @RequestBody LoginDTO loginDTO,
             HttpServletRequest request) {
@@ -85,6 +87,7 @@ public class AuthController {
      * POST /auth/register
      */
     @PostMapping("/register")
+    @ApiMessage("Đăng ký tài khoản thành công")
     public ResponseEntity<UserDTO> register(@Valid @RequestBody RegisterDTO registerDTO) {
         UserDTO userDTO = userService.handleCreateRegisterUser(registerDTO);
         return ResponseEntity.ok(userDTO);
@@ -107,6 +110,7 @@ public class AuthController {
      * Response: Giống login response (tokens mới)
      */
     @PostMapping("/refresh")
+    @ApiMessage("Làm mới token thành công")
     public ResponseEntity<ResLoginDTO> refreshToken(
             @Valid @RequestBody RefreshTokenRequestDTO requestDTO,
             HttpServletRequest httpRequest) {
