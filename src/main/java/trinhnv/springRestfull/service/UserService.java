@@ -7,6 +7,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import trinhnv.springRestfull.domain.dto.RegisterDTO;
 import trinhnv.springRestfull.domain.dto.UserDTO;
 import trinhnv.springRestfull.domain.entity.User;
 import trinhnv.springRestfull.domain.mapper.UserMapper;
@@ -65,5 +66,21 @@ public class UserService {
         return userRepository.findByUserName(userName);
     }
 
+    public UserDTO handleCreateRegisterUser(RegisterDTO registerDTO) {
+       if(this.userRepository.existsByEmail(registerDTO.getEmail())){
+           throw new RuntimeException("Tài khoản đã tồn tại");
+       }
+       if(this.userRepository.existsByUserName(registerDTO.getUsername())){
+           throw new RuntimeException("Email đã tồn tại");
+       }
+
+       User user = userMapper.registerUser(registerDTO);
+       user.setPassWord(passwordEncoder.encode(registerDTO.getPassword()));
+
+       User userSave = this.userRepository.save(user);
+
+       return this.userMapper.toDto(userSave);
+
+    }
 
 }

@@ -77,7 +77,7 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/","/login").permitAll()
+                        .requestMatchers("/","/login","/register").permitAll()
                         
                         // Tất cả endpoint khác - PHẢI CÓ TOKEN HỢP LỆ
                         .anyRequest().authenticated()

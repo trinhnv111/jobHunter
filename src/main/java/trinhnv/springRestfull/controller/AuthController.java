@@ -1,20 +1,26 @@
 package trinhnv.springRestfull.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import trinhnv.springRestfull.domain.dto.LoginDTO;
+import trinhnv.springRestfull.domain.dto.RegisterDTO;
 import trinhnv.springRestfull.domain.dto.ResLoginDTO;
+import trinhnv.springRestfull.domain.dto.UserDTO;
+import trinhnv.springRestfull.service.UserService;
 import trinhnv.springRestfull.util.SecurityUtil;
 
 
 @RestController
+@RequiredArgsConstructor
 public class AuthController {
 
     /**
@@ -24,24 +30,14 @@ public class AuthController {
      * - So sánh password bằng PasswordEncoder
      */
     private final AuthenticationManager authenticationManager;
-    
+    private  final UserService userService;
+
     /**
      * SecurityUtil: Utility class để tạo JWT token
      * - Nhận Authentication object (sau khi xác thực thành công)
      * - Tạo JWT token với thông tin user và thời gian hết hạn
      */
     private final SecurityUtil securityUtil;
-
-    /**
-     * Constructor injection - Spring tự động inject dependencies
-     * 
-     * @param authenticationManager AuthenticationManager từ SecurityConfiguration
-     * @param securityUtil SecurityUtil để tạo token
-     */
-    public AuthController(AuthenticationManager authenticationManager, SecurityUtil securityUtil) {
-       this.authenticationManager = authenticationManager;
-       this.securityUtil = securityUtil;
-    }
 
     @PostMapping("/login")
     public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
@@ -87,4 +83,11 @@ public class AuthController {
 
         return ResponseEntity.ok().body(res);
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<UserDTO> register(@Valid @RequestBody RegisterDTO registerDTO) {
+
+        return ResponseEntity.ok().body(new UserDTO());
+    }
+
 }
