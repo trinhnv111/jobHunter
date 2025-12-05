@@ -1,4 +1,4 @@
-package trinhnv.jobOKO.service;
+package trinhnv.jobOKO.config.security;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import trinhnv.jobOKO.domain.entity.User;
+import trinhnv.jobOKO.service.UserService;
 
 import java.util.Collections;
 
