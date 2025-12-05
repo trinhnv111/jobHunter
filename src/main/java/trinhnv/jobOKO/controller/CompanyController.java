@@ -4,6 +4,7 @@ import com.turkraft.springfilter.boot.Filter;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import trinhnv.jobOKO.common.annotation.ApiMessage;
@@ -45,6 +46,12 @@ public class CompanyController {
     @ApiMessage("Cập nhật công ty thành công")
     public ResponseEntity<CompanyDTO> updateCompany(@PathVariable Long id , @Valid @RequestBody CompanyDTO company) {
         return ResponseEntity.ok().body(this.companyService.handleUpdateCompany(id,company));
+    }
+
+    @DeleteMapping("/company/{id}")
+    public ResponseEntity<Void> deleteCompany(@PathVariable Long id){
+        this.companyService.deleteCompany(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
 }

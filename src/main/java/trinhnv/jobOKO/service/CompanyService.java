@@ -50,4 +50,10 @@ public class CompanyService {
         return companyMapper.toDto( this.companyRespository.save(company));
 
     }
+
+    public void deleteCompany(Long id) {
+       this.companyRespository.findById(id).orElseThrow(() -> new  BadCredentialsException(" Không tìm thấy công ty"));
+
+        this.companyRespository.deleteById(id);
+    }
 }
