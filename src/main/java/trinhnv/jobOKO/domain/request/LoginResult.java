@@ -1,7 +1,7 @@
 package trinhnv.jobOKO.domain.request;
 
 import lombok.*;
-import trinhnv.jobOKO.domain.response.ResLoginDTO;
+import trinhnv.jobOKO.domain.response.LoginResponse;
 
 /**
  * Internal DTO để truyền kết quả login giữa Service và Controller.
@@ -21,14 +21,14 @@ public class LoginResult {
     private String refreshToken;
     private long expiresIn;
     private long refreshExpiresIn;
-    private ResLoginDTO.UserInfo user;
+    private LoginResponse.UserInfo user;
     
     /**
-     * Convert to ResLoginDTO (không chứa refreshToken)
+     * Convert to LoginResponse (không chứa refreshToken)
      * RefreshToken sẽ được set vào cookie riêng
      */
-    public ResLoginDTO toResLoginDTO() {
-        return ResLoginDTO.builder()
+    public LoginResponse toLoginResponse() {
+        return LoginResponse.builder()
                 .accessToken(this.accessToken)
                 .expiresIn(this.expiresIn)
                 .tokenType("Bearer")

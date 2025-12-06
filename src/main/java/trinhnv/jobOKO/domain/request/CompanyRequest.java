@@ -6,8 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-
-public class CompanyDTO {
+public class CompanyRequest {
     private Long companyId;
     @NotBlank(message = "tên công ty không được để trống")
     private String name;
@@ -15,3 +14,4 @@ public class CompanyDTO {
     private String address;
     private String logo;
 }
+

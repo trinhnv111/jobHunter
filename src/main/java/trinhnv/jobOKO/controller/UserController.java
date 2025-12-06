@@ -10,8 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import trinhnv.jobOKO.common.annotation.ApiMessage;
 import trinhnv.jobOKO.domain.entity.User;
 import trinhnv.jobOKO.domain.projection.UserDetailsProjections;
-import trinhnv.jobOKO.domain.request.UserDTO;
+import trinhnv.jobOKO.domain.request.UserRequest;
 import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
+import trinhnv.jobOKO.domain.response.UserResponse;
 import trinhnv.jobOKO.service.UserService;
 import trinhnv.jobOKO.util.error.IdInvalidException;
 
@@ -24,7 +25,7 @@ public class UserController {
 
     @GetMapping("/users")
     @ApiMessage("Lây danh sách người dùng thành công")
-    public ResponseEntity<ResultPaginationResponse<UserDTO>> getAllUsers(
+    public ResponseEntity<ResultPaginationResponse<UserResponse>> getAllUsers(
             @Filter Specification<User> user ,
             Pageable pageable
             ) {
@@ -40,18 +41,18 @@ public class UserController {
     @PostMapping("/users")
     @ApiMessage("Thêm người dùng thành công")
 
-    public ResponseEntity<UserDTO> postMethodName(@RequestBody UserDTO user) {
-        UserDTO createUser = this.userService.handleCretaeUser(user);
+    public ResponseEntity<UserResponse> postMethodName(@RequestBody UserRequest request) {
+        UserResponse createUser = this.userService.handleCretaeUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createUser);
     }
 
     @PutMapping("/users/{id}")
     @ApiMessage("Cập nhật người dùng thành công")
 
-    public ResponseEntity<UserDTO> putMethodName(@PathVariable Long id, @RequestBody UserDTO user) {
-        UserDTO userDTO = this.userService.handleUpdateUser(id, user);
+    public ResponseEntity<UserResponse> putMethodName(@PathVariable Long id, @RequestBody UserRequest request) {
+        UserResponse userResponse = this.userService.handleUpdateUser(id, request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(userDTO);
+        return ResponseEntity.status(HttpStatus.OK).body(userResponse);
     }
 
     @DeleteMapping("/users/{id}")

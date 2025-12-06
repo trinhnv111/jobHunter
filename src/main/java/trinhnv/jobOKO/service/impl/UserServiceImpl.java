@@ -10,9 +10,10 @@ import org.springframework.stereotype.Service;
 import trinhnv.jobOKO.domain.entity.User;
 import trinhnv.jobOKO.domain.mapper.UserMapper;
 import trinhnv.jobOKO.domain.projection.UserDetailsProjections;
-import trinhnv.jobOKO.domain.request.RegisterDTO;
-import trinhnv.jobOKO.domain.request.UserDTO;
+import trinhnv.jobOKO.domain.request.RegisterRequest;
+import trinhnv.jobOKO.domain.request.UserRequest;
 import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
+import trinhnv.jobOKO.domain.response.UserResponse;
 import trinhnv.jobOKO.repository.CompanyRespository;
 import trinhnv.jobOKO.repository.UserRepository;
 import trinhnv.jobOKO.service.UserService;
@@ -32,9 +33,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ResultPaginationResponse<UserDTO> getAllUsers(Specification<User> spec, Pageable pageable) {
+    public ResultPaginationResponse<UserResponse> getAllUsers(Specification<User> spec, Pageable pageable) {
         Page<User> user = (spec != null) ? this.userRepository.findAll(spec, pageable) : this.userRepository.findAll(pageable);
-        return ResultPaginationResponse.ok(user, userMapper::toDto);
+        return ResultPaginationResponse.ok(user, userMapper::toResponse);
     }
 
     @Override
@@ -48,20 +49,19 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDTO handleCretaeUser(UserDTO user) {
-        if (user.getCompanyId() != null) {
-            boolean checkCompany = this.companyRespository.existsById(user.getCompanyId());
+    public UserResponse handleCretaeUser(UserRequest request) {
+        if (request.getCompanyId() != null) {
+            boolean checkCompany = this.companyRespository.existsById(request.getCompanyId());
             if (!checkCompany) {
                 throw new BadCredentialsException("Công ty không tồn tại!");
             }
         }
-        String hardPassWord = this.passwordEncoder.encode(user.getPassWord());
-        user.setPassWord(hardPassWord);
+        String hardPassWord = this.passwordEncoder.encode(request.getPassWord());
+        request.setPassWord(hardPassWord);
 
-        User userEntity = userMapper.toEntity(user);
+        User userEntity = userMapper.toEntity(request);
 
-
-        return this.userMapper.toDto(userRepository.save(userEntity));
+        return this.userMapper.toResponse(userRepository.save(userEntity));
     }
 
     @Override
@@ -71,16 +71,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDTO handleUpdateUser(Long id, UserDTO user) {
+    public UserResponse handleUpdateUser(Long id, UserRequest request) {
         User updatedUser = this.userRepository.findById(id).orElseThrow(() -> new BadCredentialsException("không tìm thấy ngời dùng"));
 
-        userMapper.updateUserFromDTO(user, updatedUser);
+        userMapper.updateUserFromRequest(request, updatedUser);
 
-        if (user.getPassWord() != null) {
-            updatedUser.setPassWord(this.passwordEncoder.encode(user.getPassWord()));
+        if (request.getPassWord() != null) {
+            updatedUser.setPassWord(this.passwordEncoder.encode(request.getPassWord()));
         }
 
-        return userMapper.toDto(this.userRepository.save(updatedUser));
+        return userMapper.toResponse(this.userRepository.save(updatedUser));
     }
 
     @Override
@@ -89,20 +89,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO handleCreateRegisterUser(RegisterDTO registerDTO) {
-        if (this.userRepository.existsByEmail(registerDTO.getEmail())) {
+    public UserResponse handleCreateRegisterUser(RegisterRequest registerRequest) {
+        if (this.userRepository.existsByEmail(registerRequest.getEmail())) {
             throw new RuntimeException("Email đã tồn tại");
         }
-        if (this.userRepository.existsByUserName(registerDTO.getUserName())) {
+        if (this.userRepository.existsByUserName(registerRequest.getUserName())) {
             throw new RuntimeException("Tài khoản đã tồn tại");
         }
 
-        User user = userMapper.registerUser(registerDTO);
-        user.setPassWord(passwordEncoder.encode(registerDTO.getPassword()));
+        User user = userMapper.registerUser(registerRequest);
+        user.setPassWord(passwordEncoder.encode(registerRequest.getPassword()));
 
         User userSave = this.userRepository.save(user);
 
-        return this.userMapper.toDto(userSave);
+        return this.userMapper.toResponse(userSave);
     }
 }
 

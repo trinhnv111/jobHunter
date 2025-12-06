@@ -7,13 +7,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO cho request refresh token
+ * Request cho refresh token
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RefreshTokenRequestDTO {
+public class RefreshTokenRequest {
 
     @NotBlank(message = "Refresh token không được để trống")
     private String refreshToken;

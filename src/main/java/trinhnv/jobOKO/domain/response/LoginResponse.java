@@ -6,7 +6,7 @@ import lombok.*;
 
 /**
  * ===================================================================
- * LOGIN RESPONSE DTO
+ * LOGIN RESPONSE
  * ===================================================================
  * 
  * Response trả về sau khi login/refresh thành công.
@@ -25,7 +25,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)  // Không serialize fields null
-public class ResLoginDTO {
+public class LoginResponse {
 
     /**
      * Access Token (JWT)
@@ -70,3 +70,4 @@ public class ResLoginDTO {
         private String role;
     }
 }
+

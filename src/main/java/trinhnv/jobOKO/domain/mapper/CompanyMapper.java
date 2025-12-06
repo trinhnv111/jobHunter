@@ -3,13 +3,22 @@ package trinhnv.jobOKO.domain.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
-import trinhnv.jobOKO.domain.request.CompanyDTO;
+import trinhnv.jobOKO.domain.request.CompanyRequest;
+import trinhnv.jobOKO.domain.response.CompanyResponse;
 import trinhnv.jobOKO.domain.entity.Company;
 
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-public interface CompanyMapper extends BaseMapper<CompanyDTO, Company> {
+public interface CompanyMapper {
 
-    // nếu dùng toenties thì sẽ tạo ra 1 đối tượng mới ->> kh sửa đc đối tượng ban đầu
-    void updateEntityFromDto(CompanyDTO companyDTO, @MappingTarget Company company);
+    // Request mapping
+    Company toEntity(CompanyRequest request);
+    
+    // nếu dùng toEntity thì sẽ tạo ra 1 đối tượng mới ->> kh sửa đc đối tượng ban đầu
+    void updateEntityFromRequest(CompanyRequest request, @MappingTarget Company company);
+    
+    // Response mapping
+    CompanyResponse toResponse(Company entity);
+    
+    java.util.List<CompanyResponse> toResponseList(java.util.List<Company> entityList);
 }

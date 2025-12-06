@@ -11,9 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import trinhnv.jobOKO.config.security.TokenConfig;
 import trinhnv.jobOKO.domain.entity.User;
-import trinhnv.jobOKO.domain.request.LoginDTO;
+import trinhnv.jobOKO.domain.request.LoginRequest;
 import trinhnv.jobOKO.domain.request.LoginResult;
-import trinhnv.jobOKO.domain.response.ResLoginDTO;
+import trinhnv.jobOKO.domain.response.LoginResponse;
 import trinhnv.jobOKO.service.AuthService;
 import trinhnv.jobOKO.service.UserService;
 import trinhnv.jobOKO.util.SecurityUtil;
@@ -31,41 +31,41 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional(readOnly = true)
-    public LoginResult login(LoginDTO loginDTO, HttpServletRequest request) {
-        log.info("Login attempt | username={}", loginDTO.getUsername());
+    public LoginResult login(LoginRequest loginRequest, HttpServletRequest request) {
+        log.info("Login attempt | username={}", loginRequest.getUsername());
 
         Authentication authentication;
         try {
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(
-                            loginDTO.getUsername(),
-                            loginDTO.getPassword()
+                            loginRequest.getUsername(),
+                            loginRequest.getPassword()
                     );
             authentication = authenticationManager.authenticate(authToken);
-            log.debug("Authenticate success | username={}", loginDTO.getUsername());
+            log.debug("Authenticate success | username={}", loginRequest.getUsername());
         } catch (Exception ex) {
             log.error("Authenticate failed | username={} | reason={}",
-                    loginDTO.getUsername(), ex.getMessage(), ex);
+                    loginRequest.getUsername(), ex.getMessage(), ex);
             throw ex;
         }
 
-        User user = userService.hanldeUser(loginDTO.getUsername());
+        User user = userService.hanldeUser(loginRequest.getUsername());
         if (user == null) {
-            log.error("User not found after authentication | username={}", loginDTO.getUsername());
+            log.error("User not found after authentication | username={}", loginRequest.getUsername());
             throw new RuntimeException("User không tồn tại");
         }
 
         String accessToken = securityUtil.createAccessToken(authentication);
         String refreshToken = securityUtil.createRefreshToken(user);
 
-        log.info("Login successful | username={}", loginDTO.getUsername());
+        log.info("Login successful | username={}", loginRequest.getUsername());
 
         return LoginResult.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .expiresIn(tokenConfig.getAccessTokenExpiration())
                 .refreshExpiresIn(tokenConfig.getRefreshTokenExpiration())
-                .user(ResLoginDTO.UserInfo.builder()
+                .user(LoginResponse.UserInfo.builder()
                         .id(user.getUserId())
                         .username(user.getUserName())
                         .email(user.getEmail())

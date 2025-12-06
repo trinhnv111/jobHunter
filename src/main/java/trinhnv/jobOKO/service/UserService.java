@@ -4,22 +4,23 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import trinhnv.jobOKO.domain.entity.User;
 import trinhnv.jobOKO.domain.projection.UserDetailsProjections;
-import trinhnv.jobOKO.domain.request.RegisterDTO;
-import trinhnv.jobOKO.domain.request.UserDTO;
+import trinhnv.jobOKO.domain.request.RegisterRequest;
+import trinhnv.jobOKO.domain.request.UserRequest;
 import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
+import trinhnv.jobOKO.domain.response.UserResponse;
 
 public interface UserService {
-    ResultPaginationResponse<UserDTO> getAllUsers(Specification<User> spec, Pageable pageable);
+    ResultPaginationResponse<UserResponse> getAllUsers(Specification<User> spec, Pageable pageable);
 
     UserDetailsProjections findUserById(Long id);
 
-    UserDTO handleCretaeUser(UserDTO user);
+    UserResponse handleCretaeUser(UserRequest request);
 
     void deleteUserById(Long id);
 
-    UserDTO handleUpdateUser(Long id, UserDTO user);
+    UserResponse handleUpdateUser(Long id, UserRequest request);
 
     User hanldeUser(String userName);
 
-    UserDTO handleCreateRegisterUser(RegisterDTO registerDTO);
+    UserResponse handleCreateRegisterUser(RegisterRequest registerRequest);
 }

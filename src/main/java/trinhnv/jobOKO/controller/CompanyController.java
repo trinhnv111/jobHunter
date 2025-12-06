@@ -8,8 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import trinhnv.jobOKO.common.annotation.ApiMessage;
-import trinhnv.jobOKO.domain.request.CompanyDTO;
+import trinhnv.jobOKO.domain.request.CompanyRequest;
 import trinhnv.jobOKO.domain.entity.Company;
+import trinhnv.jobOKO.domain.response.CompanyResponse;
 import trinhnv.jobOKO.service.CompanyService;
 import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
 
@@ -23,7 +24,7 @@ public class CompanyController {
 
     @GetMapping("/company")
     @ApiMessage("Lấy danh sách công ty thành công")
-    public ResponseEntity<ResultPaginationResponse<CompanyDTO>> getAllCompany(
+    public ResponseEntity<ResultPaginationResponse<CompanyResponse>> getAllCompany(
             @Filter Specification<Company> spec,
             Pageable pageable
             ){
@@ -32,20 +33,20 @@ public class CompanyController {
 
     @GetMapping("/company/{id}")
     @ApiMessage("Lấy danh sách công ty theo ID thành công")
-    public ResponseEntity<CompanyDTO> getCompanyById(@PathVariable Long id){
+    public ResponseEntity<CompanyResponse> getCompanyById(@PathVariable Long id){
         return ResponseEntity.ok().body( this.companyService.getCompanyById(id));
     }
 
     @PostMapping("/company")
     @ApiMessage("Thêm công ty thành công")
-    public ResponseEntity<CompanyDTO> createCompany(@Valid @RequestBody CompanyDTO company) {
-        return ResponseEntity.ok().body(this.companyService.handleCreateCompany(company));
+    public ResponseEntity<CompanyResponse> createCompany(@Valid @RequestBody CompanyRequest request) {
+        return ResponseEntity.ok().body(this.companyService.handleCreateCompany(request));
     }
 
     @PutMapping("/company/{id}")
     @ApiMessage("Cập nhật công ty thành công")
-    public ResponseEntity<CompanyDTO> updateCompany(@PathVariable Long id , @Valid @RequestBody CompanyDTO company) {
-        return ResponseEntity.ok().body(this.companyService.handleUpdateCompany(id,company));
+    public ResponseEntity<CompanyResponse> updateCompany(@PathVariable Long id , @Valid @RequestBody CompanyRequest request) {
+        return ResponseEntity.ok().body(this.companyService.handleUpdateCompany(id, request));
     }
 
     @DeleteMapping("/company/{id}")

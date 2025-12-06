@@ -13,8 +13,7 @@ import trinhnv.jobOKO.util.constant.Gender;
 @AllArgsConstructor
 @Setter
 @Getter
-
-public class RegisterDTO extends BaseDTO {
+public class RegisterRequest extends BaseDTO {
 
     @NotBlank(message="tài khoản không được để trống")
     @NotNull
@@ -38,5 +37,5 @@ public class RegisterDTO extends BaseDTO {
     private Gender gender;
 
     private String address;
-
 }
+

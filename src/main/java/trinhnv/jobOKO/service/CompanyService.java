@@ -3,17 +3,18 @@ package trinhnv.jobOKO.service;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import trinhnv.jobOKO.domain.entity.Company;
-import trinhnv.jobOKO.domain.request.CompanyDTO;
+import trinhnv.jobOKO.domain.request.CompanyRequest;
+import trinhnv.jobOKO.domain.response.CompanyResponse;
 import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
 
 public interface CompanyService {
-    ResultPaginationResponse<CompanyDTO> getAllCompany(Pageable pageable, Specification<Company> spec);
+    ResultPaginationResponse<CompanyResponse> getAllCompany(Pageable pageable, Specification<Company> spec);
 
-    CompanyDTO getCompanyById(Long id);
+    CompanyResponse getCompanyById(Long id);
 
-    CompanyDTO handleCreateCompany(CompanyDTO companyDTO);
+    CompanyResponse handleCreateCompany(CompanyRequest request);
 
-    CompanyDTO handleUpdateCompany(Long id, CompanyDTO companyDTO);
+    CompanyResponse handleUpdateCompany(Long id, CompanyRequest request);
 
     void deleteCompany(Long id);
 }

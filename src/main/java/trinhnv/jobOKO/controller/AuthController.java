@@ -10,11 +10,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import trinhnv.jobOKO.common.annotation.ApiMessage;
 import trinhnv.jobOKO.domain.entity.ApiResponse;
-import trinhnv.jobOKO.domain.request.LoginDTO;
+import trinhnv.jobOKO.domain.request.LoginRequest;
 import trinhnv.jobOKO.domain.request.LoginResult;
-import trinhnv.jobOKO.domain.request.RegisterDTO;
-import trinhnv.jobOKO.domain.request.UserDTO;
-import trinhnv.jobOKO.domain.response.ResLoginDTO;
+import trinhnv.jobOKO.domain.request.RegisterRequest;
+import trinhnv.jobOKO.domain.response.LoginResponse;
+import trinhnv.jobOKO.domain.response.UserResponse;
 import trinhnv.jobOKO.service.AuthService;
 import trinhnv.jobOKO.service.UserService;
 import trinhnv.jobOKO.util.error.InvalidTokenException;
@@ -63,13 +63,13 @@ public class AuthController {
      */
     @PostMapping("/login")
     @ApiMessage("Đăng nhập thành công")
-    public ResponseEntity<ResLoginDTO> login(
-            @Valid @RequestBody LoginDTO loginDTO,
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest loginRequest,
             HttpServletRequest request,
             HttpServletResponse response) {
         
         // 1. Authenticate và lấy tokens
-        LoginResult result = authService.login(loginDTO, request);
+        LoginResult result = authService.login(loginRequest, request);
         
         // 2. Set refresh token vào httpOnly cookie
         ResponseCookie refreshCookie = createRefreshTokenCookie(
@@ -79,7 +79,7 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
         
         // 3. Trả về response (chỉ có access token, không có refresh token)
-        return ResponseEntity.ok(result.toResLoginDTO());
+        return ResponseEntity.ok(result.toLoginResponse());
     }
 
     /**
@@ -89,9 +89,9 @@ public class AuthController {
      */
     @PostMapping("/register")
     @ApiMessage("Đăng ký tài khoản thành công")
-    public ResponseEntity<UserDTO> register(@Valid @RequestBody RegisterDTO registerDTO) {
-        UserDTO userDTO = userService.handleCreateRegisterUser(registerDTO);
-        return ResponseEntity.ok(userDTO);
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest registerRequest) {
+        UserResponse userResponse = userService.handleCreateRegisterUser(registerRequest);
+        return ResponseEntity.ok(userResponse);
     }
 
     /**
@@ -109,7 +109,7 @@ public class AuthController {
      */
     @PostMapping("/refresh")
     @ApiMessage("Làm mới token thành công")
-    public ResponseEntity<ResLoginDTO> refreshToken(
+    public ResponseEntity<LoginResponse> refreshToken(
             @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
             HttpServletResponse response) {
         
@@ -129,7 +129,7 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, newRefreshCookie.toString());
         
         // 4. Trả về access token mới
-        return ResponseEntity.ok(result.toResLoginDTO());
+        return ResponseEntity.ok(result.toLoginResponse());
     }
 
     /**
