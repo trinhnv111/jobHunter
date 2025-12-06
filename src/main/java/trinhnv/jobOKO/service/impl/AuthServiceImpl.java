@@ -66,7 +66,7 @@ public class AuthServiceImpl implements AuthService {
                 .expiresIn(tokenConfig.getAccessTokenExpiration())
                 .refreshExpiresIn(tokenConfig.getRefreshTokenExpiration())
                 .user(ResLoginDTO.UserInfo.builder()
-                        .id(user.getId())
+                        .id(user.getUserId())
                         .username(user.getUserName())
                         .email(user.getEmail())
                         .build())

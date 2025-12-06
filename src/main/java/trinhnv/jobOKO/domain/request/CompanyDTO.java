@@ -8,6 +8,7 @@ import lombok.Setter;
 @Setter
 
 public class CompanyDTO {
+    private Long companyId;
     @NotBlank(message = "tên công ty không được để trống")
     private String name;
     private String description;

@@ -8,11 +8,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import trinhnv.jobOKO.common.annotation.ApiMessage;
-import trinhnv.jobOKO.domain.request.UserDTO;
 import trinhnv.jobOKO.domain.entity.User;
+import trinhnv.jobOKO.domain.projection.UserDetailsProjections;
+import trinhnv.jobOKO.domain.request.UserDTO;
+import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
 import trinhnv.jobOKO.service.UserService;
 import trinhnv.jobOKO.util.error.IdInvalidException;
-import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
 
 
 @RestController
@@ -32,8 +33,7 @@ public class UserController {
 
     @GetMapping("/users/{id}")
     @ApiMessage("Lây danh sách người dùng theo ID thành công")
-
-    public ResponseEntity<UserDTO> getUser(@PathVariable Long id) throws IdInvalidException {
+    public ResponseEntity<UserDetailsProjections> getUser(@PathVariable Long id) throws IdInvalidException {
         return ResponseEntity.status(HttpStatus.OK).body(this.userService.findUserById(id));
     }
 

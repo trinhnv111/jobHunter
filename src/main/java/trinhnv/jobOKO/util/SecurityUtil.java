@@ -101,7 +101,7 @@ public class SecurityUtil {
                 .expiresAt(validity)
                 .subject(user.getUserName())
                 .claim("type", "access")
-                .claim("userId", user.getId())
+                .claim("userId", user.getUserId())
                 .claim("email", user.getEmail())
                 .claim("authorities", "ROLE_USER")
                 .build();
@@ -137,7 +137,7 @@ public class SecurityUtil {
                 .expiresAt(validity)
                 .subject(user.getUserName())
                 .claim("type", "refresh")  // Đánh dấu đây là refresh token
-                .claim("userId", user.getId())
+                .claim("userId", user.getUserId())
                 .build();
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();

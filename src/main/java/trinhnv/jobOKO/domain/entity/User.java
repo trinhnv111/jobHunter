@@ -12,7 +12,7 @@ public class User extends AbstractAuditingEntity <Long>{
 
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
-    private Long id;
+    private Long userId;
 
     private String userName;
 
@@ -26,5 +26,8 @@ public class User extends AbstractAuditingEntity <Long>{
     private Gender gender;
 
     private String address;
+
+    private Long companyId;
+
 
 }

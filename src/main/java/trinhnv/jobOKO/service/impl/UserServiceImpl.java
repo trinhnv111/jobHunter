@@ -9,22 +9,26 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import trinhnv.jobOKO.domain.entity.User;
 import trinhnv.jobOKO.domain.mapper.UserMapper;
+import trinhnv.jobOKO.domain.projection.UserDetailsProjections;
 import trinhnv.jobOKO.domain.request.RegisterDTO;
 import trinhnv.jobOKO.domain.request.UserDTO;
 import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
+import trinhnv.jobOKO.repository.CompanyRespository;
 import trinhnv.jobOKO.repository.UserRepository;
 import trinhnv.jobOKO.service.UserService;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final CompanyRespository companyRespository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, UserMapper userMapper, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, UserMapper userMapper, PasswordEncoder passwordEncoder, CompanyRespository companyRespository) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.companyRespository = companyRespository;
     }
 
     @Override
@@ -34,18 +38,29 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO findUserById(Long id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new BadCredentialsException("Không tìm thấy người dùng"));
-        return this.userMapper.toDto(user);
+    public UserDetailsProjections findUserById(Long id) {
+        UserDetailsProjections result = userRepository.findUserDetailsById(id);
+        if (result == null || result.getUserId() == null) {
+            throw new BadCredentialsException("Không tìm thấy người dùng");
+        }
+        return result;
     }
 
     @Override
     @Transactional
     public UserDTO handleCretaeUser(UserDTO user) {
+        if (user.getCompanyId() != null) {
+            boolean checkCompany = this.companyRespository.existsById(user.getCompanyId());
+            if (!checkCompany) {
+                throw new BadCredentialsException("Công ty không tồn tại!");
+            }
+        }
         String hardPassWord = this.passwordEncoder.encode(user.getPassWord());
         user.setPassWord(hardPassWord);
 
         User userEntity = userMapper.toEntity(user);
+
+
         return this.userMapper.toDto(userRepository.save(userEntity));
     }
 

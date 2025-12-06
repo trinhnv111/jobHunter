@@ -15,7 +15,7 @@ import lombok.Setter;
 public class Company extends AbstractAuditingEntity<Long> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long companyId;
 
     @NotBlank(message="Tên công ty không được để trống")
     private String name;
@@ -26,6 +26,7 @@ public class Company extends AbstractAuditingEntity<Long> {
     private String address;
 
     private String logo;
+
 
 
 }
