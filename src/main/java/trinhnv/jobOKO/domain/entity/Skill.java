@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @Data
 
 public class Skill extends AbstractAuditingEntity<Long> {
-
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long skillId;

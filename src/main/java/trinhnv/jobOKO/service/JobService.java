@@ -11,15 +11,15 @@ import trinhnv.jobOKO.domain.response.JobResponse;
 import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
 
 public interface JobService {
-   
-     ResultPaginationResponse<JobResponse>getAllJobs(Specification<Job>  specification, Pageable pageable);
+
+    ResultPaginationResponse<JobResponse> getAllJobs(Specification<Job> specification, Pageable pageable);
 
     JobsDetailProjections getJobSkillId(Long skillId);
 
-     JobResponse createJobs(JobRequest jobRequest);
+    JobResponse createJobs(JobRequest jobRequest);
 
-     JobResponse updateJobSkillId(Long jobId, JobRequest jobRequest);
+    JobResponse updateJobSkillId(Long jobId, JobRequest jobRequest);
 
-     void deleteJobSkillId(Long jobId);
+    void deleteJobSkillId(Long jobId);
 
 }

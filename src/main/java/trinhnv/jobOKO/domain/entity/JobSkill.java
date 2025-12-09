@@ -20,7 +20,4 @@ public class JobSkill extends AbstractAuditingEntity<Long>{
 
     private Long  jobId;
 
-    private String proficiencyLevel;
-
-
 }
