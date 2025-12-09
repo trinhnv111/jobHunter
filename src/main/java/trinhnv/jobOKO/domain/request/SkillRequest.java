@@ -1,5 +1,6 @@
 package trinhnv.jobOKO.domain.request;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,6 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 
 public class SkillRequest {
-    private Long skillId;
+
+    @NotBlank(message = "Tên kĩ năng là bắt buộc")
     private String skillName;
 }

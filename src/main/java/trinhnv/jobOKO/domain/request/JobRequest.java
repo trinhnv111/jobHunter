@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import trinhnv.jobOKO.util.constant.Level;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -29,4 +30,6 @@ public class JobRequest extends BaseDTO{
     LocalDateTime startDate;
     LocalDateTime endDate;
     Boolean isActive;
+
+    List<Long> skillsId;
 }

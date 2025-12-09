@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import trinhnv.jobOKO.util.constant.Level;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -29,4 +30,5 @@ public class JobResponse {
     LocalDateTime startDate;
     LocalDateTime endDate;
     Boolean isActive;
+    List<Long> skillsId;
 }

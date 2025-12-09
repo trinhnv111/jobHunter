@@ -1,5 +1,6 @@
 package trinhnv.jobOKO.controller;
 
+import com.turkraft.springfilter.boot.Filter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,7 +18,7 @@ public class SkillController {
     private final SkillService skillService;
 
     @GetMapping("/skill")
-    public ResponseEntity<ResultPaginationResponse<SkillResponse>> getAllSkill(Specification<Skill> spec, Pageable pageable) {
+    public ResponseEntity<ResultPaginationResponse<SkillResponse>> getAllSkill(@Filter Specification<Skill> spec, Pageable pageable) {
         return ResponseEntity.ok().body(this.skillService.getAllSkill(spec, pageable));
     }
 
@@ -37,7 +38,9 @@ public class SkillController {
     }
 
     @DeleteMapping("/skill/{skillId}")
-    public ResponseEntity<Void> deleteSkill(@PathVariable("skillId") Long skillId) {
-        return this.deleteSkill(skillId);
+    public ResponseEntity<Void> deleteSkill(@PathVariable Long skillId) {
+        skillService.deleteSkill(skillId);
+        return ResponseEntity.noContent().build(); // HTTP 204
     }
+
 }
