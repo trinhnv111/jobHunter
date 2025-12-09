@@ -7,8 +7,9 @@ import trinhnv.jobOKO.domain.request.CompanyRequest;
 import trinhnv.jobOKO.domain.response.CompanyResponse;
 import trinhnv.jobOKO.domain.entity.Company;
 
-@Mapper(componentModel = "spring",
-        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+import java.util.List;
+
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface CompanyMapper {
 
     // Request mapping
@@ -20,5 +21,5 @@ public interface CompanyMapper {
     // Response mapping
     CompanyResponse toResponse(Company entity);
     
-    java.util.List<CompanyResponse> toResponseList(java.util.List<Company> entityList);
+   List<CompanyResponse> toResponseList(java.util.List<Company> entityList);
 }
