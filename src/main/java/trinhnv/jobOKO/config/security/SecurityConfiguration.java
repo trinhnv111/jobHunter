@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,6 +36,19 @@ public class SecurityConfiguration {
 
     @Value("${trinhnguyen.jwtKey}")
     private String jwtSecretKey;
+
+    /**
+     * Bỏ qua hoàn toàn Security filter chain cho static files.
+     * Điều này đảm bảo `/api/v1/storage/**` không bao giờ bị JWT filter chặn (401),
+     * kể cả khi có thay đổi về servlet path/context path.
+     */
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(
+                "/storage/**",
+                "/api/v1/storage/**"
+        );
+    }
 
 
     @Bean
@@ -76,10 +90,23 @@ public class SecurityConfiguration {
                         // Public endpoints - không cần token
                         .requestMatchers(
                                 "/",
+                                // NOTE:
+                                // app đang cấu hình `spring.mvc.servlet.path=/api/v1`
+                                // nên các endpoint thực tế sẽ có prefix `/api/v1`.
+                                // Vì vậy cần whitelist cả 2 dạng (có/không có prefix)
+                                // để tránh bị 401 khi gọi public resources.
                                 "/auth/login",
                                 "/auth/register",
                                 "/auth/refresh",
-                                "/auth/logout"
+                                "/auth/logout",
+                                "/storage/**",
+
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/refresh",
+                                "/api/v1/auth/logout",
+                                "/api/v1/storage/**",
+                                "/api/v1/error"
                         ).permitAll()
                         
                         // Tất cả endpoint khác - PHẢI CÓ TOKEN HỢP LỆ
