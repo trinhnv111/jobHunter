@@ -14,6 +14,8 @@ import trinhnv.jobOKO.domain.response.CompanyResponse;
 import trinhnv.jobOKO.service.CompanyService;
 import trinhnv.jobOKO.domain.response.ResultPaginationResponse;
 
+import java.util.List;
+
 @RestController
 public class CompanyController {
     private final CompanyService companyService;
@@ -39,8 +41,8 @@ public class CompanyController {
 
     @PostMapping("/company")
     @ApiMessage("Thêm công ty thành công")
-    public ResponseEntity<CompanyResponse> createCompany(@Valid @RequestBody CompanyRequest request) {
-        return ResponseEntity.ok().body(this.companyService.handleCreateCompany(request));
+    public ResponseEntity<List<CompanyResponse>> createCompanies(@Valid @RequestBody List<CompanyRequest> requests) {
+        return ResponseEntity.ok().body(this.companyService.handleCreateCompanies(requests));
     }
 
     @PutMapping("/company/{id}")

@@ -1,21 +1,26 @@
 package trinhnv.jobOKO.domain.mapper;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
 import trinhnv.jobOKO.domain.request.CompanyRequest;
 import trinhnv.jobOKO.domain.response.CompanyResponse;
 import trinhnv.jobOKO.domain.entity.Company;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(
+    componentModel = "spring",
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+    unmappedTargetPolicy = ReportingPolicy.IGNORE
+)
 public interface CompanyMapper {
 
-    // Request mapping
     Company toEntity(CompanyRequest request);
-    
-    // nếu dùng toEntity thì sẽ tạo ra 1 đối tượng mới ->> kh sửa đc đối tượng ban đầu
+
+    @Mapping(target = "companyId", ignore = true)
     void updateEntityFromRequest(CompanyRequest request, @MappingTarget Company company);
     
     // Response mapping

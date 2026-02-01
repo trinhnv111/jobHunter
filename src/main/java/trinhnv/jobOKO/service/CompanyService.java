@@ -1,5 +1,7 @@
 package trinhnv.jobOKO.service;
 
+import java.util.List;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import trinhnv.jobOKO.domain.entity.Company;
@@ -12,7 +14,7 @@ public interface CompanyService {
 
     CompanyResponse getCompanyById(Long id);
 
-    CompanyResponse handleCreateCompany(CompanyRequest request);
+    List<CompanyResponse> handleCreateCompanies(List<CompanyRequest> requests);
 
     CompanyResponse handleUpdateCompany(Long id, CompanyRequest request);
 

@@ -1,5 +1,8 @@
 package trinhnv.jobOKO.service.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -36,12 +39,19 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
-    public CompanyResponse handleCreateCompany(CompanyRequest request) {
-        if (this.companyRespository.findByName(request.getName()) != null) {
-            throw new BadCredentialsException("Công ty đã tồn tại");
+    public List<CompanyResponse> handleCreateCompanies(List<CompanyRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            return List.of();
         }
-        Company company = this.companyMapper.toEntity(request);
-        return this.companyMapper.toResponse(this.companyRespository.save(company));
+        List<CompanyResponse> responses = new ArrayList<>();
+        for (CompanyRequest request : requests) {
+            if (this.companyRespository.findByName(request.getName()) != null) {
+                throw new BadCredentialsException("Công ty đã tồn tại: " + request.getName());
+            }
+            Company company = this.companyMapper.toEntity(request);
+            responses.add(this.companyMapper.toResponse(this.companyRespository.save(company)));
+        }
+        return responses;
     }
 
     @Override

@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -122,6 +123,32 @@ public class GlobalException {
         response.setMessage(ex.getMessage());
         
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    // ===================================================================
+    // REQUEST BODY (JSON) EXCEPTIONS
+    // ===================================================================
+
+    /**
+     * Client gửi JSON sai định dạng (ví dụ gửi mảng [] thay vì object {}).
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        log.warn("JSON parse error: {}", ex.getMessage());
+
+        String message = "Dữ liệu JSON không đúng định dạng.";
+        if (ex.getMessage() != null && ex.getMessage().contains("START_ARRAY")) {
+            message = "Vui lòng gửi một đối tượng JSON (object {}), không phải mảng (array []). Ví dụ: {\"name\": \"Tên công ty\", \"description\": \"...\", \"address\": \"...\", \"logo\": \"...\"}";
+        }
+
+        ApiResponse<Object> res = new ApiResponse<>();
+        res.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        res.setError("INVALID_JSON");
+        res.setMessage(message);
+        res.setData(null);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
     }
 
     // ===================================================================
