@@ -13,7 +13,7 @@ public class StaticResourcesWebConfiguration
     private String basePath;
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/storage/**")
-                .addResourceLocations(basePath);
+        String location = basePath.endsWith("/") ? basePath : basePath + "/";
+        registry.addResourceHandler("/api/v1/storage/**").addResourceLocations(location);
     }
 }

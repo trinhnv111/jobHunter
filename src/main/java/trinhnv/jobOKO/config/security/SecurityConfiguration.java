@@ -22,6 +22,10 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import trinhnv.jobOKO.util.SecurityUtil;
 
 import javax.crypto.SecretKey;
@@ -55,19 +59,24 @@ public class SecurityConfiguration {
         return new NimbusJwtEncoder(new ImmutableSecret<>(getSecretKey()));
     }
 
+    /** Public paths: auth, error, và /api/v1/storage/** (chỉ dùng đường dẫn này). */
+    @Bean
+    public RequestMatcher publicPathsMatcher() {
+        return new OrRequestMatcher(
+                new AntPathRequestMatcher("/"),
+                new AntPathRequestMatcher("/auth/**"),
+                new AntPathRequestMatcher("/api/v1/auth/**"),
+                new AntPathRequestMatcher("/api/v1/error"),
+                new AntPathRequestMatcher("/api/v1/storage/**")
+        );
+    }
+
     // Chain 1: Public endpoints - KHÔNG có OAuth2 Resource Server
     @Bean
     @Order(1)
-    public SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain publicSecurityFilterChain(HttpSecurity http, RequestMatcher publicPathsMatcher) throws Exception {
         http
-                .securityMatcher(
-                        "/",
-                        "/auth/**",
-                        "/api/v1/auth/**",
-                        "/api/v1/error",
-                        "/storage/**"
-
-                )
+                .securityMatcher(publicPathsMatcher)
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
@@ -78,15 +87,16 @@ public class SecurityConfiguration {
         return http.build();
     }
 
-    // Chain 2: Protected endpoints - CÓ OAuth2 Resource Server
+    // Chain 2: Protected endpoints - CHỈ áp dụng khi KHÔNG phải public path (tránh storage bị 401)
     @Bean
     @Order(2)
     public SecurityFilterChain protectedSecurityFilterChain(
             HttpSecurity http,
-            CustomAuthenticationEntryPoint customAuthenticationEntryPoint
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+            RequestMatcher publicPathsMatcher
     ) throws Exception {
         http
-                .securityMatcher("/**") // Tất cả còn lại
+                .securityMatcher(new NegatedRequestMatcher(publicPathsMatcher))
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authz -> authz.anyRequest().authenticated())
