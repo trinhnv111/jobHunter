@@ -11,7 +11,8 @@ import trinhnv.jobOKO.util.constant.Gender;
 public class User extends AbstractAuditingEntity <Long>{
 
     @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long userId;
 
     private String userName;

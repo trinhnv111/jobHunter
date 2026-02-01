@@ -7,12 +7,13 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class StaticResourcesWebConfiguration implements WebMvcConfigurer {
-    @Value("${trinhnv.upload-file.base-path}")
+public class StaticResourcesWebConfiguration
+        implements WebMvcConfigurer {
+    @Value("${trinhnguyen.upload-file.base-path}")
     private String basePath;
-
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/storage/**").addResourceLocations(basePath);
+        registry.addResourceHandler("/storage/**")
+                .addResourceLocations(basePath);
     }
 }

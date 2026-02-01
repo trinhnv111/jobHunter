@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -38,24 +39,53 @@ public class GlobalException {
     private static final Logger log = LoggerFactory.getLogger(GlobalException.class);
 
     // ===================================================================
-    // AUTHENTICATION EXCEPTIONS
+    // AUTHENTICATION EXCEPTIONS (LOGIN)
     // ===================================================================
 
     /**
-     * Xử lý exception login user/password sai → 401
+     * Sai mật khẩu khi đăng nhập (user tồn tại nhưng password không khớp).
+     * Trả 401 + thông báo rõ ràng cho client.
      */
-    @ExceptionHandler(value = {
-            UserPrincipalNotFoundException.class,
-            BadCredentialsException.class
-    })
+    @ExceptionHandler(BadCredentialsException.class)
     @ResponseBody
-    public ResponseEntity<ApiResponse<Object>> handleUserPrincipalNotFound(Exception ex){
-        ApiResponse<Object> res = new ApiResponse<>();
-        res.setStatusCode(HttpStatus.BAD_REQUEST.value());
-        res.setError(ex.getMessage());
-        res.setMessage("Bad Credentials");
+    public ResponseEntity<ApiResponse<Object>> handleBadCredentials(BadCredentialsException ex) {
+        log.warn("Login failed: {}", ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        ApiResponse<Object> res = new ApiResponse<>();
+        res.setStatusCode(HttpStatus.UNAUTHORIZED.value());
+        res.setError("INVALID_CREDENTIALS");
+        res.setMessage("Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.");
+        res.setData(null);
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(res);
+    }
+
+    /**
+     * Tài khoản không tồn tại (username không tìm thấy trong DB).
+     */
+    @ExceptionHandler(UsernameNotFoundException.class)
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Object>> handleUsernameNotFound(UsernameNotFoundException ex) {
+        log.warn("Login failed - user not found: {}", ex.getMessage());
+
+        ApiResponse<Object> res = new ApiResponse<>();
+        res.setStatusCode(HttpStatus.UNAUTHORIZED.value());
+        res.setError("USER_NOT_FOUND");
+        res.setMessage("Tài khoản không tồn tại. Vui lòng kiểm tra lại tên đăng nhập.");
+        res.setData(null);
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(res);
+    }
+
+    @ExceptionHandler(UserPrincipalNotFoundException.class)
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Object>> handleUserPrincipalNotFound(UserPrincipalNotFoundException ex) {
+        ApiResponse<Object> res = new ApiResponse<>();
+        res.setStatusCode(HttpStatus.UNAUTHORIZED.value());
+        res.setError("USER_NOT_FOUND");
+        res.setMessage(ex.getMessage() != null ? ex.getMessage() : "Tài khoản không tồn tại.");
+        res.setData(null);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(res);
     }
 
     // ===================================================================

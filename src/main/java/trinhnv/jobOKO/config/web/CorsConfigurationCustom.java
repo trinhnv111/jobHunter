@@ -9,6 +9,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class CorsConfigurationCustom {
@@ -17,8 +18,12 @@ public class CorsConfigurationCustom {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
+        // 4. CORS: Cho phép localhost mọi port (Postman, frontend 3000/5173/...) để tránh CORS chặn login
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*"
+        ));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
